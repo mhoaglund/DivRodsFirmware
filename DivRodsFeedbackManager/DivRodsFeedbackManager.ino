@@ -18,7 +18,7 @@
 
 //Peripherals managed by this device include a BNO055 AOS, a neopixel ring, and two haptic feedback motors.
 
-//Target is Arduino 328. Initial implementation uses an 8mhz one.
+//Target is Arduino 328.
 #define RING_DATA_PIN 6
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(8, RING_DATA_PIN, NEO_GRB + NEO_KHZ800);
@@ -78,12 +78,10 @@ int RXbuf = 0;
 void loop() {
   unsigned long currentMillis = millis();
   if (Serial.available() > 0) {
-      // read the incoming byte:
       RXbuf = Serial.parseInt();
       if(RXbuf < 8 & RXbuf > 0){
         heading_offset_index = RXbuf;
       }
-      // say what you got:
       Serial.print("I received: ");
       Serial.println(RXbuf);
   }
