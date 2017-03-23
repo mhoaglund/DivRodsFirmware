@@ -7,6 +7,7 @@ unsigned int GREENLIGHT = 0;
 unsigned int REDLIGHT = 0;
 unsigned int nextTime = 0;
 
+
 String steps[10];
 String location_input = "";
 String actual_location = "";
