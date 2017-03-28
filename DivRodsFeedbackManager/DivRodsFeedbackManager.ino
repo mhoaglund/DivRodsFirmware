@@ -1,4 +1,3 @@
-#include <SoftwareSerial.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
@@ -19,20 +18,16 @@
 
 //Peripherals managed by this device include a BNO055 AOS, a neopixel ring, and two haptic feedback motors.
 
-//Target is Arduino 328. Initial implementation uses an 8mhz one.
+//Target is Arduino 328.
 #define RING_DATA_PIN 6
-#define PH_RX 3
-#define PH_TX 4
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(8, RING_DATA_PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
-SoftwareSerial photonSerial(PH_RX,PH_TX);
+char buf[100];
+volatile byte pos;
+volatile bool process_it;
 
-boolean _dirty = false;
-byte _max = 8;
-unsigned char nl = '\n';
-byte _buf;
 int CURRENT_HEADING = 0;
 long previousMillis = 0;
 const int heading_interval = 75;
@@ -49,9 +44,7 @@ byte LED_MAP[][8] = {
   };
 
 void setup() {
-  //pinMode(13, OUTPUT);
   Serial.begin(9600);
-  photonSerial.begin(9600);
   if(!bno.begin())
   {
     /* There was a problem detecting the BNO055 ... check your connections */
@@ -62,36 +55,44 @@ void setup() {
     
   bno.setExtCrystalUse(true);
   strip.begin();
-  strip.setBrightness(20);
-  strip.show();
-}
-
-void processBuffer(byte _buffer){
-  if(_buffer > _max){
-    Serial.println("Bad command.");
-    return;
-  }
-  int result = (int)_buffer;
-  CURRENT_HEADING = result;
-  heading_offset_index = result;
-  _dirty = true;
-}
-
-void loop() {
-  //TODO in this serial catching loop, differentiate commands.
-  //Heading updates wont be the only ones.
-  if (photonSerial.available()) {
-    byte packet = photonSerial.read();
-    if(packet == nl){
-      processBuffer(_buf);
-    }
-    else{
-      _buf = packet;
-    }
-  }
+  strip.setBrightness(30); //adjust brightness here
+  strip.show(); // Initialize all pixels to 'off'
   
-  unsigned long currentMillis = millis();
+  SPCR |= bit (SPE); //somehow this turns on SPI in slave mode. TODO understand
+  pinMode(MISO, OUTPUT);
+  pos = 0;
+  process_it = false;
+  SPI.attachInterrupt();
+}
 
+// SPI interrupt routine. Asynchronously add a received byte to the pile.
+ISR (SPI_STC_vect)
+{
+byte c = SPDR;  // grab byte from SPI Data Register
+  if (pos < sizeof buf){
+    buf [pos++] = c;
+    if (c == '\n') process_it = true;
+   } 
+}  // end of interrupt routine SPI_STC_vect
+int RXbuf = 0;
+void loop() {
+  unsigned long currentMillis = millis();
+  if (Serial.available() > 0) {
+      RXbuf = Serial.parseInt();
+      if(RXbuf < 8 & RXbuf > 0){
+        heading_offset_index = RXbuf;
+      }
+      Serial.print("I received: ");
+      Serial.println(RXbuf);
+  }
+  if (process_it){
+      //Should be getting a command byte and a data byte.
+      buf [pos] = 0;
+      Serial.println (buf);
+      if(buf[0]==0) heading_offset_index = buf[1]; //something like that!
+      pos = 0;
+      process_it = false;
+  }
   if(currentMillis - previousMillis > heading_interval){
     previousMillis = currentMillis;
     sensors_event_t event; 
