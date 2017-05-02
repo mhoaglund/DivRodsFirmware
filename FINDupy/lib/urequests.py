@@ -30,20 +30,19 @@ class Response:
         return ujson.loads(self.content)
 
 
-def request(method, url, data=None, json=None, headers={}, stream=None, port=00):
+def request(method, url, data=None, json=None, headers={}, stream=None):
     try:
         proto, dummy, host, path = url.split("/", 3)
     except ValueError:
         proto, dummy, host = url.split("/", 2)
         path = ""
-    if port == 00:
-        if proto == "http:":
-            port = 80
-        elif proto == "https:":
-            import ssl
-            port = 443
-        else:
-            raise ValueError("Unsupported protocol: " + proto)
+    if proto == "http:":
+        port = 80
+    elif proto == "https:":
+        import ussl
+        port = 443
+    else:
+        raise ValueError("Unsupported protocol: " + proto)
 
     if ":" in host:
         host, port = host.split(":", 1)
