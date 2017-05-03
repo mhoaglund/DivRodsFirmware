@@ -1,7 +1,8 @@
-import json
+#Dijkstra et al here!
+import ujson
 
 with open('2fnodes.json') as data_file:    
-    data = json.load(data_file)
+    data = ujson.load(data_file)
 
 def get_shortest_path(weighted_graph, start, end):
     """

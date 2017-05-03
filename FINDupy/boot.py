@@ -14,7 +14,7 @@ if machine.reset_cause() != machine.SOFT_RESET:
     known_secure_nets = {
         # SSID : PSK (passphrase)
         'Disney': 'eaglehouse',
-        'StudioNorth': 'northernlights', 
+        'StudioNorth': 'northernlights',
     } # change this dict to match your WiFi settings
 
     wl = WLAN()
@@ -24,7 +24,7 @@ if machine.reset_cause() != machine.SOFT_RESET:
 
     wl.antenna(WLAN.EXT_ANT)
     wl.mode(WLAN.STA)
-    
+
     for ssid, bssid, sec, channel, rssi in wl.scan():
         # Note: could choose priority by rssi if desired
         if ssid == 'Mia-Guest':
@@ -38,4 +38,4 @@ if machine.reset_cause() != machine.SOFT_RESET:
     else:
         wl.init(mode=WLAN.AP, ssid=original_ssid, auth=original_auth, channel=6, antenna=WLAN.INT_ANT)
 
-time.sleep(1)
+time.sleep(5)
