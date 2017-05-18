@@ -54,7 +54,12 @@ def request(method, url, data=None, json=None, headers={}, stream=None):
     s.connect(addr)
     if proto == "https:":
         s = ussl.wrap_socket(s)
-    s.write(b"%s /%s HTTP/1.0\r\n" % (method, path))
+    try:
+        s.write(b"%s /%s HTTP/1.0\r\n" % (method, path))
+    except OSError:
+        print("DNS probe failed, probably moving too fast.")
+        s.close()
+        return False
     if not "Host" in headers:
         s.write(b"Host: %s\r\n" % host)
     # Iterate over keys to avoid tuple alloc
@@ -73,9 +78,14 @@ def request(method, url, data=None, json=None, headers={}, stream=None):
     if data:
         s.write(data)
 
-    l = s.readline()
-    protover, status, msg = l.split(None, 2)
-    status = int(status)
+    try:
+        l = s.readline()
+        protover, status, msg = l.split(None, 2)
+        status = int(status)
+    except ValueError:
+        print("Empty buffer at the modem")
+        s.close()
+        return False
     #print(protover, status, msg)
     while True:
         l = s.readline()
@@ -91,8 +101,8 @@ def request(method, url, data=None, json=None, headers={}, stream=None):
     resp = Response(s)
     resp.status_code = status
     resp.reason = msg.rstrip()
+    #s.close()
     return resp
-
 
 def head(url, **kw):
     return request("HEAD", url, **kw)

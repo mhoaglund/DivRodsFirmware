@@ -1,3 +1,5 @@
+#Dijkstra et al here!
+#import ujson
 import math
 
 data = {
@@ -44,14 +46,23 @@ data = {
     "278":{"loc": (434,341), "edges":{"277":1}},
     "280":{"loc": (623,503), "edges":{"264":1, "275":1, "277":1}}
 }
-
+    
 def _get_heading(destination, location):
-    angle = math.degrees(math.atan2(destination[1] - location[1], destination[0] - location[0]))
+    """
+        Return int representing heading in degrees from one node to another.
+        :param destination: key from node dictionary
+        :param location: key from node dictionary
+    """
+    try:
+        _destination = data[destination]["loc"]
+        _location = data[location]["loc"]
+    except KeyError:
+        return 0
+    angle = math.degrees(math.atan2(_destination[1] - _location[1], _destination[0] - _location[0]))
     bearing1 = (angle + 360) % 360
-    bearing2 = (90 - angle) % 360
-    print(bearing1)
-
-def get_shortest_path(weighted_graph, start, end):
+    return int(bearing1)
+    
+def get_shortest_path(start, end, weighted_graph = data):
     """
     Calculate the shortest path for a directed weighted graph.
 
@@ -108,10 +119,24 @@ def _deconstruct_path(tentative_parents, end):
         cursor = tentative_parents.get(cursor)
     return list(reversed(path))
 
+def _is_in_immediate_neighbors(new, old):
+    """
+       To try to reduce navigation errors, determine if location is within one gallery of previous
+       :param new: string name of new gallery
+       :param old: string name of old gallery
+    """
+    if new == "" or old == "":
+        return False
+    try:
+        _oldnode = data[old]
+    except KeyError:
+        print('Location not found...')
+        return False
+    if new in _oldnode["edges"]:
+        return True
+    else:
+        return False
+
 #print(get_shortest_path(data, '222', '259'))
-
-print("---")
-
-_get_heading(data["262"]["loc"],data["261"]["loc"])
-_get_heading(data["275"]["loc"],data["262"]["loc"])
-_get_heading(data["262"]["loc"],data["275"]["loc"])
+#print(_is_in_immediate_neighbors('222', '259'))
+#print(_is_in_immediate_neighbors('222', '223'))
