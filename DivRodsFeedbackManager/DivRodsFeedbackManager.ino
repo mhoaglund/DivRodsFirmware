@@ -240,18 +240,14 @@ void recvWithStartEndMarkers() {
 
 void parseSerialPacket() {
     if (newData == true) {
-        Serial.print("This just in ... ");
-        Serial.println(receivedChars);
+        //Serial.println(receivedChars);
         newData = false;
         String temp(receivedChars);
         if(receivedChars[0] == headingflag){
           _mode = 'h';
           _shouldFlash = true;
-          Serial.println(temp);
           temp.remove(0,1);
           heading_offset_index = roundHeading(temp.toInt());
-          Serial.print("Processed heading: ");
-          Serial.println(heading_offset_index);
         }
         else if(receivedChars[0] == waitflag){
           _mode = 'w';
