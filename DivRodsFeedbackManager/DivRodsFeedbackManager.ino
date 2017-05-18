@@ -30,6 +30,7 @@ char receivedChars[numChars];
 const char headingflag = 'h';
 const char waitflag = 'w';
 const char successflag = 's';
+const char errorflag = 'e';
 char _mode = 'h';
 
 boolean newData = false;
@@ -74,6 +75,9 @@ int targetled = 0;
 long fadecounter = 0;
 long fadeinterval = 1500;
 bool fadedirection = true;
+bool _shouldFlash = false;
+int _flashcount = 0;
+
 void loop() {
   unsigned long currentMillis = millis();
   recvWithStartEndMarkers();
@@ -94,6 +98,24 @@ void loop() {
   
   switch (_mode) {
     case 'h':{
+      if(_shouldFlash){
+        if(_flashcount < 4){
+          if(fadedirection) fadecounter += 5;
+          if(!fadedirection) fadecounter -= 5;
+          if(fadecounter > fadeinterval) fadedirection = false;
+          if(fadecounter < 1){
+            fadedirection = true;
+            _flashcount++;
+          }
+          int brightness = map(fadecounter, 0, fadeinterval, 150, 250);
+          strip.setBrightness(brightness);
+        }
+         else{
+          strip.setBrightness(150);
+          _flashcount = 0;
+          _shouldFlash = false;
+         }
+        }
       strip.setPixelColor(targetled, strip.Color(255, 0, 255));
       instantColorWipe(strip.Color(0, 125, 155), targetled);
       break;
@@ -116,6 +138,15 @@ void loop() {
       int gchan = map(fadecounter, 0, fadeinterval, 25, 255);
       int bchan = map(fadecounter, 0, fadeinterval, 255, 25);
       fullColorWipe(strip.Color(0, gchan, bchan));
+      break;
+    }
+    case 'e':{ //error state
+      if(fadedirection) fadecounter++;
+      if(!fadedirection) fadecounter--;
+      if(fadecounter > fadeinterval) fadedirection = false;
+      if(fadecounter < 1) fadedirection = true;
+      int rchan = map(fadecounter, 0, fadeinterval, 25, 255);
+      fullColorWipe(strip.Color(rchan, 50, 25));
       break;
     }
     default: 
@@ -215,6 +246,7 @@ void parseSerialPacket() {
         String temp(receivedChars);
         if(receivedChars[0] == headingflag){
           _mode = 'h';
+          _shouldFlash = true;
           Serial.println(temp);
           temp.remove(0,1);
           heading_offset_index = roundHeading(temp.toInt());
@@ -227,6 +259,10 @@ void parseSerialPacket() {
         else if(receivedChars[0] == successflag){
           _mode = 's';
         }
+        else if(receivedChars[0] == errorflag){
+          _mode = 'e';
+        }
+        fadecounter = 0;
     }
 }
 
