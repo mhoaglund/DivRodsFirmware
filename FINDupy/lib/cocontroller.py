@@ -10,6 +10,10 @@ class CoController():
         """
         self._send('w0')
 
+    def _print(self, _message):
+        _msg = 'p' + _message
+        self._send(_msg)
+
     def _finish(self):
         """
            Reward routine to indicate successful wayfinding

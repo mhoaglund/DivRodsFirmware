@@ -1,3 +1,4 @@
+#include <Adafruit_SSD1306.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
@@ -24,6 +25,9 @@
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, RING_DATA_PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
+#define OLED_RESET 4
+Adafruit_SSD1306 display(OLED_RESET);
+
 const byte numChars = 32;
 char receivedChars[numChars];
 
@@ -31,6 +35,7 @@ const char headingflag = 'h';
 const char waitflag = 'w';
 const char successflag = 's';
 const char errorflag = 'e';
+const char printflag = 'p';
 char _mode = 'h';
 
 boolean newData = false;
@@ -69,6 +74,16 @@ void setup() {
   strip.begin();
   strip.setBrightness(150); //adjust brightness here
   strip.show(); // Initialize all pixels to 'off'
+
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3D);
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.println("Divining Rods Prototype");
+  display.display();
+  delay(1000);
+  display.clearDisplay();
 }
 
 int targetled = 0;
@@ -240,7 +255,6 @@ void recvWithStartEndMarkers() {
 
 void parseSerialPacket() {
     if (newData == true) {
-        //Serial.println(receivedChars);
         newData = false;
         String temp(receivedChars);
         if(receivedChars[0] == headingflag){
@@ -257,6 +271,10 @@ void parseSerialPacket() {
         }
         else if(receivedChars[0] == errorflag){
           _mode = 'e';
+        }
+        else if(receivedChars[0] == printflag){
+          display.setCursor(0,0);
+          display.println(temp);
         }
         fadecounter = 0;
     }
