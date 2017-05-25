@@ -57,7 +57,7 @@ def request(method, url, data=None, json=None, headers={}, stream=None):
     try:
         s.write(b"%s /%s HTTP/1.0\r\n" % (method, path))
     except OSError:
-        print("DNS probe failed, probably moving too fast.")
+        print("Wifi probe failed, probably moving too fast.")
         s.close()
         return False
     if not "Host" in headers:
