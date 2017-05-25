@@ -22,8 +22,8 @@ _headers = { "Content-Type": "application/json;charset=UTF-8", "Accept": "applic
 
 _FINDhost = "http://ec2-54-209-226-130.compute-1.amazonaws.com:18003/track"
 _FINDport = 18003
-_FINDgroup = "studiotest"
-_FINDuser = "pycom"
+_FINDgroup = "mia2f"
+_FINDuser = str(_myID)
 _FINDloc = "test"
 _postinterval = 2000 #how long to wait between nav calls
 _MOSTRECENT = ""
@@ -131,7 +131,8 @@ def _scan_and_post():
     pycom.rgbled(0x007f00)
     _APs = _compose_ap_report()
     #make json data from APs...
-    payload = ujson.dumps({"group":"mia2f", "username":"pycom", "location":"test", "wifi-fingerprint":_APs})
+    payload = ujson.dumps({"group":_FINDgroup, "username":_FINDuser, "location":"test", "wifi-fingerprint":_APs})
+    gc.collect()
     try:
         FINDpost = urequests.post(_FINDhost, data = payload, headers = _headers)
         if FINDpost:
@@ -157,6 +158,5 @@ while True:
             _scan_and_post()
             _start = time.ticks_ms()
     else:
-        print("Lost connection. Resetting!")
-        wlan.connect('Mia-Guest', timeout=10000)
+        time.sleep(2)
         
