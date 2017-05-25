@@ -11,6 +11,9 @@ class CoController():
         self._send('w0')
 
     def _print(self, _message):
+        """
+           Print a diagnostic message using the arduino's competent OLED screen ability
+        """
         _msg = 'p' + _message
         self._send(_msg)
 
