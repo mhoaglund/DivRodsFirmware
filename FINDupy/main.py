@@ -35,6 +35,7 @@ _NEXTSTEP = -1
 
 _UTILITYhost = ""
 
+wdt = machine.WDT(timeout=10000)
 wlan = WLAN()
 print(wlan.ifconfig())
 coco = cocontroller.CoController()
@@ -157,6 +158,9 @@ while True:
         if time.ticks_diff(_start, time.ticks_ms()) > _postinterval:
             _scan_and_post()
             _start = time.ticks_ms()
+            wdt.feed()
     else:
+        pycom.rgbled(0x7f007f)
+        wdt.feed()
         time.sleep(2)
-        
+
