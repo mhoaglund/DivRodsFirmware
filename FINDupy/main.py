@@ -43,6 +43,8 @@ coco._wait()
 
 _STEPS = pathfinding.get_shortest_path(_START, _GOAL)
 print(_STEPS)
+coco._print(''.join(_STEPS))
+
 #Setup methods
 
 def _get_device_setup():
@@ -70,7 +72,7 @@ def _compose_ap_report():
         apjson = {"mac": prettymac, "rssi": nets[ap].rssi}
         aps.append(apjson)
     return aps
-    
+
 #End Utility methods
 
 def _start_return_nav():
@@ -141,6 +143,7 @@ def _scan_and_post():
             print(_rjson['message'])
             locationname = _rjson['message'][18:]
             print(locationname)
+            coco._print(locationname)
             _update_nav_state(locationname)
             FINDpost.close()
             pycom.rgbled(0x7f0000)
