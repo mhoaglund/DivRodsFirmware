@@ -10,14 +10,14 @@ typedef struct edge Edge;
 struct lineage{
     String NodeName;
     String ParentName;
-}
+};
 typedef struct lineage Lineage;
 
 struct distance{
     String Name;
     int distance;
 };
-typedef struct distance Distance
+typedef struct distance Distance;
 
 struct node{
     String Name;
@@ -81,55 +81,15 @@ void loop() {
 
 }
 
-void get_shortest_path(String _start, String _end){
-  Node nodes_to_visit[MAP_SIZE];
-  Node visited_nodes[MAP_SIZE];
-  Node tentative_parents[MAP_SIZE];
-  Distance distances_from_start[MAP_SIZE];
-  Lineage tentative_parents[MAP_SIZE];
 
-  int current_step = 0;
-  int visited = 0;
-  int current_neighbor_index = 0;
-
-  //locate the start node and set its distance to 0, and prep distance and lineage arrays
+boolean has_remaining_nodes(Node items[]){
   for(int i=0; i<MAP_SIZE; i++){
-    Node curr = nodes_to_visit[i];
-    Distance dcurr = {curr.Name, -1};
-    if(curr.Name == _start){
-      nodes_to_visit[0] = curr;
-      current_neighbor_index++;
-      dcurr.distance = 0;
+    Node curr = items[i];
+    if(curr.Name != "0"){
+      return true;
     }
-    distances_from_start[i] = dcurr;
-    tentative_parents[i] = {curr.Name, "0"};
   }
-
-  while(has_remaining_nodes(nodes_to_visit)){
-    Node current = find_node_by_edge(get_min_edge(floorMap[current_step]), floorMap)
-    //Pick next node: shortest weight from list of edge peers
-    if(current.Name == _end) break;
-
-    pull(current, nodes_to_visit);
-    visited_nodes[current_step] = current;
-
-    for(int i=0; i<EDGES; i++){
-      Edge neighbor = edges[i];
-      if(neighbor.Name != "0" && find_node_by_edge(neighbor, visited_nodes) == NULL){
-        //found an unvisited edge...
-        Edge neighbor_edge = get_edge_by_name(neighbor.Name, current.edges);
-        int neighbor_distance = find_distance_by_name(neighbor.Name, distances_from_start, 0) + neighbor_edge.weight;
-        if(neighbor_distance < find_distance_by_name(neighbor.Name, distances_from_start, 99))
-          set_distance_from_start(neighbor.Name, neighbor_distance, distances_from_start);
-          set_parent(neighbor.Name, current.Name, tentative_parents);
-          nodes_to_visit.[current_neighbor_index] = find_node_by_edge(neighbor.Name, floorMap);
-          current_neighbor_index++;
-        }
-      }
-    }
-    current_step++;
-  } 
-  //return _deconstruct_path(tentative_parents, end)
+  return false;
 }
 
 //wow how do we do this
@@ -143,16 +103,9 @@ void get_shortest_path(String _start, String _end){
 //         cursor = tentative_parents.get(cursor)
 //     return list(reversed(path))
 
-boolean has_remaining_nodes(Node items[]){
-  for(int i=0; i<MAP_SIZE; i++){
-    Node curr = items[i];
-    if(curr.Name != "0"){
-      return true;
-    }
-  }
-  return false;
-}
 
+
+//Embarassments:
 
 void pull(Node item, Node items[]){
   for(int i=0; i<MAP_SIZE; i++){
@@ -177,7 +130,7 @@ void set_distance_from_start(String _name, int _distance, Distance items[]){
 void set_parent(String _name, String _parent, Lineage items[]){
   for(int i=0; i<MAP_SIZE; i++){
     Lineage curr = items[i];
-    if(curr.Name == _name){
+    if(curr.NodeName == _name){
       items[i].ParentName = _parent;
       break;
     }
@@ -185,13 +138,25 @@ void set_parent(String _name, String _parent, Lineage items[]){
 }
 
 Node find_node_by_edge(Edge edge, Node items[]){
+  Node empty = {"0", {0,0}, {}};
   for(int i=0; i<MAP_SIZE; i++){
     Node curr = items[i];
     if(curr.Name == edge.Name){
       return curr;
     }
   }
-  return NULL;
+  return empty;
+}
+
+Node find_node_by_edge(String edge, Node items[]){
+  Node empty = {"0", {0,0}, {}};
+  for(int i=0; i<MAP_SIZE; i++){
+    Node curr = items[i];
+    if(curr.Name == edge){
+      return curr;
+    }
+  }
+  return empty;
 }
 
 Edge get_edge_by_name(String name, Edge edges[]){
@@ -210,8 +175,10 @@ int find_distance_by_name(String name, Distance items[], int _default){
       return curr.distance;
     }
   }
-  return _default; //or 99?
+  return _default;
 }
+
+//END Embarassments
 
 Edge get_min_edge(Edge edges[]){
   int localmin = 99;
@@ -228,4 +195,55 @@ Edge get_min_edge(Edge edges[]){
   return found;
   //given an array of edges, find the one with least weight and return it.
 }
+
+void get_shortest_path(String _start, String _end){
+  Node nodes_to_visit[MAP_SIZE];
+  Node visited_nodes[MAP_SIZE];
+
+  Distance distances_from_start[MAP_SIZE];
+  Lineage tentative_parents[MAP_SIZE];
+
+  int current_step = 0;
+  int visited = 0;
+  int current_neighbor_index = 0;
+
+  //locate the start node and set its distance to 0, and prep distance and lineage arrays
+  for(int i=0; i<MAP_SIZE; i++){
+    Node curr = nodes_to_visit[i];
+    Distance dcurr = {curr.Name, -1};
+    if(curr.Name == _start){
+      nodes_to_visit[0] = curr;
+      current_neighbor_index++;
+      dcurr.distance = 0;
+    }
+    distances_from_start[i] = dcurr;
+    tentative_parents[i] = {curr.Name, "0"};
+  }
+
+  while(has_remaining_nodes(nodes_to_visit)){
+    Node current = find_node_by_edge(get_min_edge(floorMap[current_step].edges), floorMap);
+    //Pick next node: shortest weight from list of edge peers
+    if(current.Name == _end) break;
+
+    pull(current, nodes_to_visit);
+    visited_nodes[current_step] = current;
+
+    for(int i=0; i<EDGES; i++){
+      Edge neighbor = current.edges[i];
+      if(neighbor.Name != "0" && find_node_by_edge(neighbor, visited_nodes).Name == "0"){
+        //found an unvisited edge...
+        Edge neighbor_edge = get_edge_by_name(neighbor.Name, current.edges);
+        int neighbor_distance = find_distance_by_name(neighbor.Name, distances_from_start, 0) + neighbor_edge.weight;
+        if(neighbor_distance < find_distance_by_name(neighbor.Name, distances_from_start, 99))
+          set_distance_from_start(neighbor.Name, neighbor_distance, distances_from_start);
+          set_parent(neighbor.Name, current.Name, tentative_parents);
+          nodes_to_visit[current_neighbor_index] = find_node_by_edge(neighbor.Name, floorMap);
+          current_neighbor_index++;
+        }
+      }
+    }
+    current_step++;
+  } 
+  //return _deconstruct_path(tentative_parents, end)
+
 
