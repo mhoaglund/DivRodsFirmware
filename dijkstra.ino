@@ -80,18 +80,22 @@ void get_shortest_path(String _start, String _end){
   Node visited_nodes[MAP_SIZE];
   Node tentative_parents[MAP_SIZE];
   Distance distances_from_start[MAP_SIZE]; //wrong construct for this
-  distances_from_start[0] = {_start, 0};
-  //locate the start node:
-  for(int i=0; i<MAP_SIZE; i++){
-    Node curr = nodes_to_visit[i];
-    if(curr.Name == _start){
-      nodes_to_visit[0] = curr;
-      break;
-    }
-  }
 
   int current_step = 0;
   int visited = 0;
+  int current_neighbor_index = 0;
+
+  //locate the start node and set its distance to 0:
+  for(int i=0; i<MAP_SIZE; i++){
+    Node curr = nodes_to_visit[i];
+    Distance dcurr = {curr.Name, -1};
+    if(curr.Name == _start){
+      nodes_to_visit[0] = curr;
+      current_neighbor_index++;
+      dcurr.distance = 0;
+    }
+    distances_from_start[i] = dcurr;
+  }
 
   while(has_remaining_nodes(nodes_to_visit)){
     Node current = find_node_by_edge(get_min_edge(floorMap[current_step]), floorMap)
@@ -101,25 +105,34 @@ void get_shortest_path(String _start, String _end){
     pull(current, nodes_to_visit);
     visited_nodes[current_step] = current;
 
-    //TODO: diff edges of current node with visited nodes
     for(int i=0; i<EDGES; i++){
-      Edge curr = edges[i];
-      if(find_node_by_edge(curr, visited_nodes) == NULL){
+      Edge neighbor = edges[i];
+      if(find_node_by_edge(neighbor, visited_nodes) == NULL){
         //found an unvisited edge...
-        Edge neighbor_edge = get_edge_by_name(curr.Name, current.edges);
-        int neighbor_distance = find_distance_by_name(curr.Name, distances_from_start, 0) + neighbor_edge.weight;
-        if(neighbor_distance < find_distance_by_name(curr.Name, distances_from_start, 99)){
-          //distance_from_start[neighbour] = neighbour_distance
-          //t0entative_parents[neighbour] = current
-          //nodes_to_visit.add(neighbour)
+        Edge neighbor_edge = get_edge_by_name(neighbor.Name, current.edges);
+        int neighbor_distance = find_distance_by_name(neighbor.Name, distances_from_start, 0) + neighbor_edge.weight;
+        if(neighbor_distance < find_distance_by_name(neighbor.Name, distances_from_start, 99)){
+          set_distance_from_start(neighbor.Name, neighbor_distance, distances_from_start);
+          //tentative_parents[neighbour] = current
+          nodes_to_visit.[current_neighbor_index] = find_node_by_edge(neighbor.Name, floorMap);
+          current_neighbor_index++;
         }
       }
     }
-
-
     current_step++;
   } 
+  //return _deconstruct_path(tentative_parents, end)
 }
+
+// def _deconstruct_path(tentative_parents, end):
+//     if end not in tentative_parents:
+//         return None
+//     cursor = end
+//     path = []
+//     while cursor:
+//         path.append(cursor)
+//         cursor = tentative_parents.get(cursor)
+//     return list(reversed(path))
 
 boolean has_remaining_nodes(Node items[]){
   for(int i=0; i<MAP_SIZE; i++){
@@ -132,12 +145,21 @@ boolean has_remaining_nodes(Node items[]){
 }
 
 
-
 void pull(Node item, Node items[]){
   for(int i=0; i<MAP_SIZE; i++){
     Node curr = items[i];
     if(curr.Name == item.Name){
       items[i] = {"0",{0,0},{}}; //hideous
+      break;
+    }
+  }
+}
+
+void set_distance_from_start(String _name, int _distance, Distance items[]){
+  for(int i=0; i<MAP_SIZE; i++){
+    Distance curr = items[i];
+    if(curr.Name == _name){
+      items[i].distance = _distance;
       break;
     }
   }
@@ -165,7 +187,7 @@ Edge get_edge_by_name(String name, Edge edges[]){
 int find_distance_by_name(String name, Distance items[], int _default){
   for(int i=0; i<MAP_SIZE; i++){
     Distance curr = items[i];
-    if(curr.Name == name){
+    if(curr.Name == name && curr.distance > -1){
       return curr.distance;
     }
   }
