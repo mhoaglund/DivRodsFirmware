@@ -17,7 +17,7 @@ data = {
     "224":{"loc": (937,1413), "edges":{"229":1, "223":1}},
     "225":{"loc": (1047,1413), "edges":{"226":1, "224":1}},
     "226":{"loc": (1162,1413), "edges":{"227":1, "225":1}},
-    "227":{"loc": (1172,1286), "edges":{"237":1, "226":1, "228":1}},
+    "227":{"loc": (1172,1286), "edges":{"237":1, "226":1}},
     "229":{"loc": (881,1284), "edges":{"239":1, "224":1}},
     "235":{"loc": (1286,1283), "edges":{"214":1, "227":1, "236":1}},
     "236":{"loc": (1280,1170), "edges":{"250":1, "235":1}},
@@ -137,6 +137,6 @@ def _is_in_immediate_neighbors(new, old):
     else:
         return False
 
-#print(get_shortest_path(data, '222', '259'))
+print(get_shortest_path('222', '259'))
 #print(_is_in_immediate_neighbors('222', '259'))
 #print(_is_in_immediate_neighbors('222', '223'))

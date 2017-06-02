@@ -81,6 +81,23 @@ void loop() {
 
 }
 
+// https://stackoverflow.com/questions/9072320/split-string-into-string-array
+String getValue(String data, char separator, int index)
+{
+  int found = 0;
+  int strIndex[] = {0, -1};
+  int maxIndex = data.length()-1;
+
+  for(int i=0; i<=maxIndex && found<=index; i++){
+    if(data.charAt(i)==separator || i==maxIndex){
+        found++;
+        strIndex[0] = strIndex[1]+1;
+        strIndex[1] = (i == maxIndex) ? i+1 : i;
+    }
+  }
+
+  return found>index ? data.substring(strIndex[0], strIndex[1]) : "";
+}
 
 boolean has_remaining_nodes(Node items[]){
   for(int i=0; i<MAP_SIZE; i++){
@@ -92,21 +109,7 @@ boolean has_remaining_nodes(Node items[]){
   return false;
 }
 
-//wow how do we do this
-// def _deconstruct_path(tentative_parents, end):
-//     if end not in tentative_parents:
-//         return None
-//     cursor = end
-//     path = []
-//     while cursor:
-//         path.append(cursor)
-//         cursor = tentative_parents.get(cursor)
-//     return list(reversed(path))
-
-
-
 //Embarassments:
-
 void pull(Node item, Node items[]){
   for(int i=0; i<MAP_SIZE; i++){
     Node curr = items[i];
@@ -115,6 +118,28 @@ void pull(Node item, Node items[]){
       break;
     }
   }
+}
+
+bool is_lineage_in_array(String _name, Lineage items[]){
+  for(int i=0; i<MAP_SIZE; i++){
+    Lineage curr = items[i];
+    if(curr.NodeName == _name){
+      return true;
+      break;
+    }
+  }
+  return false;
+}
+
+String find_lineage_from_node_name(String _name,  Lineage items[]){
+  for(int i=0; i<MAP_SIZE; i++){
+    Lineage curr = items[i];
+    if(curr.NodeName == _name){
+      return curr.ParentName;
+      break;
+    }
+  }
+  return "0";
 }
 
 void set_distance_from_start(String _name, int _distance, Distance items[]){
@@ -196,6 +221,29 @@ Edge get_min_edge(Edge edges[]){
   //given an array of edges, find the one with least weight and return it.
 }
 
+void distill_path(Lineage tentative_parents[], String _end){
+  //if end isn't in tentative parents, path is impossible.
+  if(!is_lineage_in_array(_end, tentative_parents)){
+    return;
+  }
+  String cursor = _end;
+  String path_string = "";
+  int pathnodes = 0;
+  while(cursor != "0"){
+    path_string += cursor;
+    path_string += ", ";
+    pathnodes++;
+    //python's dictionary get() returns a value when supplied with a key.
+    cursor = find_lineage_from_node_name(cursor, tentative_parents);
+  }
+  //C funk below: reversing the path string
+  String path[pathnodes];
+  for(int i=0; i<pathnodes; i++){
+    int substring_index = pathnodes - i;
+    path[i] = getValue(path_string, ',', substring_index);
+  }
+}
+
 void get_shortest_path(String _start, String _end){
   Node nodes_to_visit[MAP_SIZE];
   Node visited_nodes[MAP_SIZE];
@@ -241,9 +289,7 @@ void get_shortest_path(String _start, String _end){
           current_neighbor_index++;
         }
       }
+      current_step++;
     }
-    current_step++;
+    distill_path(tentative_parents, _end);
   } 
-  //return _deconstruct_path(tentative_parents, end)
-
-
