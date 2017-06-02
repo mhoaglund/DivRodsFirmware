@@ -3,9 +3,15 @@
 
 struct edge{
     String Name;
-    int weight;
+    int weight; //rename to distance
 };
 typedef struct edge Edge;
+
+struct distance{
+    String Name;
+    int distance;
+};
+typedef struct distance Distance
 
 struct node{
     String Name;
@@ -72,7 +78,9 @@ void loop() {
 void get_shortest_path(String _start, String _end){
   Node nodes_to_visit[MAP_SIZE];
   Node visited_nodes[MAP_SIZE];
-  
+  Node tentative_parents[MAP_SIZE];
+  Distance distances_from_start[MAP_SIZE]; //wrong construct for this
+  distances_from_start[0] = {_start, 0};
   //locate the start node:
   for(int i=0; i<MAP_SIZE; i++){
     Node curr = nodes_to_visit[i];
@@ -81,10 +89,35 @@ void get_shortest_path(String _start, String _end){
       break;
     }
   }
+
+  int current_step = 0;
+  int visited = 0;
+
   while(has_remaining_nodes(nodes_to_visit)){
-    //Node current = 
+    Node current = find_node_by_edge(get_min_edge(floorMap[current_step]), floorMap)
     //Pick next node: shortest weight from list of edge peers
-    //f(current.Name == _end) break;
+    if(current.Name == _end) break;
+
+    pull(current, nodes_to_visit);
+    visited_nodes[current_step] = current;
+
+    //TODO: diff edges of current node with visited nodes
+    for(int i=0; i<EDGES; i++){
+      Edge curr = edges[i];
+      if(find_node_by_edge(curr, visited_nodes) == NULL){
+        //found an unvisited edge...
+        Edge neighbor_edge = get_edge_by_name(curr.Name, current.edges);
+        int neighbor_distance = find_distance_by_name(curr.Name, distances_from_start, 0) + neighbor_edge.weight;
+        if(neighbor_distance < find_distance_by_name(curr.Name, distances_from_start, 99)){
+          //distance_from_start[neighbour] = neighbour_distance
+          //t0entative_parents[neighbour] = current
+          //nodes_to_visit.add(neighbour)
+        }
+      }
+    }
+
+
+    current_step++;
   } 
 }
 
@@ -98,6 +131,8 @@ boolean has_remaining_nodes(Node items[]){
   return false;
 }
 
+
+
 void pull(Node item, Node items[]){
   for(int i=0; i<MAP_SIZE; i++){
     Node curr = items[i];
@@ -108,7 +143,48 @@ void pull(Node item, Node items[]){
   }
 }
 
-void get_min_edge(Edge edges[]){
-  
+Node find_node_by_edge(Edge edge, Node items[]){
+  for(int i=0; i<MAP_SIZE; i++){
+    Node curr = items[i];
+    if(curr.Name == edge.Name){
+      return curr;
+    }
+  }
+  return NULL;
+}
+
+Edge get_edge_by_name(String name, Edge edges[]){
+  Edge found = {"0", 0};
+  for(int i=0; i<EDGES; i++){
+    Edge curr = edges[i];
+    if(curr.Name == name) return curr;
+  }
+  return found;
+}
+
+int find_distance_by_name(String name, Distance items[], int _default){
+  for(int i=0; i<MAP_SIZE; i++){
+    Distance curr = items[i];
+    if(curr.Name == name){
+      return curr.distance;
+    }
+  }
+  return _default; //or 99?
+}
+
+Edge get_min_edge(Edge edges[]){
+  int localmin = 99;
+  Edge found;
+  for(int i=0; i<EDGES; i++){
+    Edge curr = edges[i];
+    if(curr.weight == 0) continue;
+    else{
+      if(curr.weight < localmin){
+        found = curr;
+      }
+    }
+  }
+  return found;
+  //given an array of edges, find the one with least weight and return it.
 }
 
