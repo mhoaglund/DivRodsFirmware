@@ -7,6 +7,12 @@ struct edge{
 };
 typedef struct edge Edge;
 
+struct lineage{
+    String NodeName;
+    String ParentName;
+}
+typedef struct lineage Lineage;
+
 struct distance{
     String Name;
     int distance;
@@ -79,13 +85,14 @@ void get_shortest_path(String _start, String _end){
   Node nodes_to_visit[MAP_SIZE];
   Node visited_nodes[MAP_SIZE];
   Node tentative_parents[MAP_SIZE];
-  Distance distances_from_start[MAP_SIZE]; //wrong construct for this
+  Distance distances_from_start[MAP_SIZE];
+  Lineage tentative_parents[MAP_SIZE];
 
   int current_step = 0;
   int visited = 0;
   int current_neighbor_index = 0;
 
-  //locate the start node and set its distance to 0:
+  //locate the start node and set its distance to 0, and prep distance and lineage arrays
   for(int i=0; i<MAP_SIZE; i++){
     Node curr = nodes_to_visit[i];
     Distance dcurr = {curr.Name, -1};
@@ -95,6 +102,7 @@ void get_shortest_path(String _start, String _end){
       dcurr.distance = 0;
     }
     distances_from_start[i] = dcurr;
+    tentative_parents[i] = {curr.Name, "0"};
   }
 
   while(has_remaining_nodes(nodes_to_visit)){
@@ -107,13 +115,13 @@ void get_shortest_path(String _start, String _end){
 
     for(int i=0; i<EDGES; i++){
       Edge neighbor = edges[i];
-      if(find_node_by_edge(neighbor, visited_nodes) == NULL){
+      if(neighbor.Name != "0" && find_node_by_edge(neighbor, visited_nodes) == NULL){
         //found an unvisited edge...
         Edge neighbor_edge = get_edge_by_name(neighbor.Name, current.edges);
         int neighbor_distance = find_distance_by_name(neighbor.Name, distances_from_start, 0) + neighbor_edge.weight;
-        if(neighbor_distance < find_distance_by_name(neighbor.Name, distances_from_start, 99)){
+        if(neighbor_distance < find_distance_by_name(neighbor.Name, distances_from_start, 99))
           set_distance_from_start(neighbor.Name, neighbor_distance, distances_from_start);
-          //tentative_parents[neighbour] = current
+          set_parent(neighbor.Name, current.Name, tentative_parents);
           nodes_to_visit.[current_neighbor_index] = find_node_by_edge(neighbor.Name, floorMap);
           current_neighbor_index++;
         }
@@ -124,6 +132,7 @@ void get_shortest_path(String _start, String _end){
   //return _deconstruct_path(tentative_parents, end)
 }
 
+//wow how do we do this
 // def _deconstruct_path(tentative_parents, end):
 //     if end not in tentative_parents:
 //         return None
@@ -160,6 +169,16 @@ void set_distance_from_start(String _name, int _distance, Distance items[]){
     Distance curr = items[i];
     if(curr.Name == _name){
       items[i].distance = _distance;
+      break;
+    }
+  }
+}
+
+void set_parent(String _name, String _parent, Lineage items[]){
+  for(int i=0; i<MAP_SIZE; i++){
+    Lineage curr = items[i];
+    if(curr.Name == _name){
+      items[i].ParentName = _parent;
       break;
     }
   }
