@@ -140,3 +140,4 @@ def _is_in_immediate_neighbors(new, old):
 #print(get_shortest_path(data, '222', '259'))
 #print(_is_in_immediate_neighbors('222', '259'))
 #print(_is_in_immediate_neighbors('222', '223'))
+print(_get_heading("255", "247"))
