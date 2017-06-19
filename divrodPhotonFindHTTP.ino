@@ -104,7 +104,7 @@ JsonObject& postJSON(String _host, int _port, String _path, String _body){
     request.port = _port;
     request.path = _path;
     request.body = _body;
-    
+    //get deviceid in here
     http.post(request, response, headers);
     StaticJsonBuffer<2000> jsonBuffer;
     char json[response.body.length()+1];
@@ -122,7 +122,7 @@ JsonObject& postJSON(String _host, int _port, String _path, String _body){
 String postSTRING(String _host, int _port, String _path, String _body){
     request.hostname = _host;
     request.port = _port;
-    request.path = _path;
+    request.path = _path + "?deviceid=" + myID;
     request.body = _body;
     
     http.post(request, response, headers);
@@ -366,20 +366,23 @@ void loop() {
     String body_start = "{\"group\":\""+GROUP+"\",\"username\":\""+USER+"\",\"location\":\""+location_input+"\",\"wifi-fingerprint\":[";
     body_start = body_start + gatherAPs();
 
-    JsonObject& _locationReport = postJSON(TRACKING_HOST, 18003, MODE, body_start);
-    //TODO: update flow for this string endpoint that wraps FIND.
-    //String _location = postSTRING(UTILITY_HOST, 80, "/locate", body_start);
+    //JsonObject& _locationReport = postJSON(TRACKING_HOST, 18003, MODE, body_start);
     
-    if (!_locationReport.success()) {
-            output = "JSON parse failed.";
-        }else{
-            const char* msg = _locationReport["location"];
-            output = msg;
-            String msg_actual(msg);
-            if(output != ""){
-                updateNavigation(msg_actual);    
-            }
-        }
+    String _location = postSTRING(UTILITY_HOST, 80, "/locate", body_start);
+    if(_location != ""){
+        updateNavigation(_location);
+        output = _location;
+    }
+    // if (!_locationReport.success()) {
+    //         output = "JSON parse failed.";
+    //     }else{
+    //         const char* msg = _locationReport["location"];
+    //         output = msg;
+    //         String msg_actual(msg);
+    //         if(output != ""){
+    //             updateNavigation(msg_actual);    
+    //         }
+    //     }
         
     if(output == ""){
         output = "No output.";
