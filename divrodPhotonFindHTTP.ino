@@ -18,7 +18,6 @@ class Room{
 std::vector<Room> navSteps;
 int _steps = 0;
 
-Room CURRENT_ROOM;
 unsigned int nextTime = 0;
 HttpClient http;
 STARTUP(WiFi.selectAntenna(ANT_EXTERNAL)); 
@@ -32,15 +31,8 @@ http_header_t headers[] = {
     { NULL, NULL }
 };
 
-http_header_t string_headers[] = {
-    { "Content-Type", "application/json" },
-    { "Accept" , "text/plain" },
-    { NULL, NULL }
-};
-
 unsigned char nl = '\n';
-//String UTILITY_HOST = "node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.com";
-String UTILITY_HOST = "a951b8b2.ngrok.io";
+String UTILITY_HOST = "node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.com";
 String TRACKING_HOST = "ec2-54-209-226-130.compute-1.amazonaws.com";
 String GROUP = "mia2f";
 String USER = System.deviceID();
@@ -49,8 +41,7 @@ String MODE = "/track";
 String location_input = "";
 String actual_location = "";
 String _goal = "";
-unsigned int list_position = 0;
-const unsigned int list_size = 4;
+
 String myID = "";
 
 http_request_t request;
@@ -67,7 +58,6 @@ String goal1 = "259";
 String goal2 = "276";
 String current_goal = "276";
 
-//test comment!
 void setup() {
     Time.zone(-6); //US central
     Serial.begin(9600);
@@ -80,9 +70,8 @@ void setup() {
     Particle.function("do_onboard", onboard);
     Particle.function("show_onboard", onboard_response);
 
-    //Initialize navsteps.
     refreshPathJson(goal1,goal2);
-    //refreshPath();
+    //refreshPathJson();
     delay(1000);
     instructCoController(print_flag, "Hello from Photon!");
 }
@@ -94,26 +83,6 @@ JsonObject& getJSON(String _host, int _port, String _path, String _query){
     request.path = _path + "?deviceid=" + myID + _query;
     
     http.get(request, response, headers);
-    DynamicJsonBuffer jsonBuffer;
-    char json[response.body.length()+1];
-    if(response.body.length() > 0){
-        strcpy(json, response.body.c_str());
-        JsonObject& root = jsonBuffer.parseObject((char*)json);
-        if (root.success()) {
-            return root;
-        }else{
-            return root;
-        }
-    }
-}
-
-JsonObject& postJSON(String _host, int _port, String _path, String _body){
-    request.hostname = _host;
-    request.port = _port;
-    request.path = _path;
-    request.body = _body;
-    //get deviceid in here
-    http.post(request, response, headers);
     DynamicJsonBuffer jsonBuffer;
     char json[response.body.length()+1];
     if(response.body.length() > 0){
@@ -153,21 +122,6 @@ String parseLocation(String _host, int _port, String _path, String _body){
         }
     }
 }
-
-String postSTRING(String _host, int _port, String _path, String _body){
-    request.hostname = _host;
-    request.port = _port;
-    request.path = _path + "?deviceid=" + myID;
-    request.body = _body;
-    
-    http.post(request, response, headers);
-    if(response.body.length() > 0 && response.body[1] == 'g'){
-        return String(response.body);
-    }else{
-        return "Empty POST response.";
-    }
-}
-
 
 void instructCoController(char command, String payload){
     Serial1.print('<');
@@ -239,7 +193,7 @@ void updateNavigation(String _location){
         return;
     }
     if(navSteps.empty()){
-        refreshPath(_location, current_goal);
+        refreshPathJson(_location, current_goal);
     }
     int _stepindex = 99;
     bool _onTrack = false;
@@ -270,7 +224,7 @@ void updateNavigation(String _location){
             //Upon arrival of RFID and pref data:
                 //Hit the pref engine to get a new goal
                 //refreshGoal(artID, pref);
-                //refreshPath(_location, current_goal);
+                //refreshPathJson(_location, current_goal);
         }
         else{
             //Moving along the path, get the next step.
@@ -280,108 +234,106 @@ void updateNavigation(String _location){
     }
     else{ //get a new path based on where the user has ended up
         instructCoController(waitflag, '0');
-        refreshPath(_location, current_goal);
+        refreshPathJson(_location, current_goal);
     }
 }
-    /*
-        Retrieve a new path from the server based on current location and goal.
-        Parses JSON response into Vector of Rooms.
-    */
-    void refreshPathJson(String _location, String _destination){
-        String qs = "&start=" + _location + "&end=" + _destination;
-        StaticJsonBuffer<1500> jsonBuffer;
-        http_request_t this_request;
-        http_response_t this_response;
-        this_request.hostname = UTILITY_HOST;
-        this_request.port = 80;
-        this_request.path = "/path?deviceid=" + myID + qs;
-        
-        http.get(this_request, this_response, headers);
-        
-        if(this_response.body.length() > 0){
-            char json[this_response.body.length()+1];
-            strcpy(json, this_response.body.c_str());
-            JsonObject& newpath = jsonBuffer.parseObject((char*)json);
-            if (newpath.success()) {
-                if (!newpath.containsKey("steps"))
-                {
-                    //No steps enclosed? API must have returned nothing.
-                    instructCoController(print_flag, "Pathfinding Call Returned Empty.");
-                    return;
-                }else{
-                    instructCoController(print_flag, "Got path.");
-                    delay(500);
-                }
-                navSteps.clear();
-                int number_of_steps = newpath["steps"];
-                navSteps.reserve(number_of_steps);
-                JsonArray& _journeysteps = newpath["journey"].asArray();
-                for(int i = 0; i< number_of_steps; i++){
-                    JsonObject& step = _journeysteps[i];
-                    Room _room_for_step;
-                    _room_for_step.name = step["room"].asString();
-                    _room_for_step.pos[0] = step["coords"][0];
-                    _room_for_step.pos[1] = step["coords"][1];
-                    navSteps.push_back(_room_for_step);
-                }
-                String strnumb(number_of_steps);
+/*
+    Retrieve a new path from the server based on current location and goal.
+    Parses JSON response into Vector of Rooms.
+*/
+void refreshPathJson(String _location, String _destination){
+    String qs = "&start=" + _location + "&end=" + _destination;
+    StaticJsonBuffer<1500> jsonBuffer;
+    http_request_t this_request;
+    http_response_t this_response;
+    this_request.hostname = UTILITY_HOST;
+    this_request.port = 80;
+    this_request.path = "/path?deviceid=" + myID + qs;
+    
+    http.get(this_request, this_response, headers);
+    
+    if(this_response.body.length() > 0){
+        char json[this_response.body.length()+1];
+        strcpy(json, this_response.body.c_str());
+        JsonObject& newpath = jsonBuffer.parseObject((char*)json);
+        if (newpath.success()) {
+            if (!newpath.containsKey("steps"))
+            {
+                //No steps enclosed? API must have returned nothing.
+                instructCoController(print_flag, "Pathfinding Call Returned Empty.");
+                return;
             }else{
-                instructCoController(print_flag, "Path JSON Parse Failed.");
-                delay(300);
+                instructCoController(print_flag, "Got path.");
+                delay(500);
             }
+            navSteps.clear();
+            int number_of_steps = newpath["steps"];
+            navSteps.reserve(number_of_steps);
+            JsonArray& _journeysteps = newpath["journey"].asArray();
+            for(int i = 0; i< number_of_steps; i++){
+                JsonObject& step = _journeysteps[i];
+                Room _room_for_step;
+                _room_for_step.name = step["room"].asString();
+                _room_for_step.pos[0] = step["coords"][0];
+                _room_for_step.pos[1] = step["coords"][1];
+                navSteps.push_back(_room_for_step);
+            }
+            String strnumb(number_of_steps);
+        }else{
+            instructCoController(print_flag, "Path JSON Parse Failed.");
+            delay(300);
         }
     }
+}
+void refreshPathJson(){
+    StaticJsonBuffer<1500> jsonBuffer;
+    http_request_t this_request;
+    http_response_t this_response;
+    this_request.hostname = UTILITY_HOST;
+    this_request.port = 80;
+    this_request.path = "/path?deviceid=" + myID;
     
+    http.get(this_request, this_response, headers);
     
-    void refreshPath(){
-        StaticJsonBuffer<1500> jsonBuffer;
-        http_request_t this_request;
-        http_response_t this_response;
-        this_request.hostname = UTILITY_HOST;
-        this_request.port = 80;
-        this_request.path = "/path?deviceid=" + myID;
-        
-        http.get(this_request, this_response, headers);
-        
-        if(this_response.body.length() > 0){
-            char json[this_response.body.length()+1];
-            strcpy(json, this_response.body.c_str());
-            JsonObject& newpath = jsonBuffer.parseObject((char*)json);
-            if (newpath.success()) {
-                if (!newpath.containsKey("steps"))
-                {
-                    //No steps enclosed? API must have returned nothing.
-                    instructCoController(print_flag, "Pathfinding Call Returned Empty.");
-                    return;
-                }else{
-                    instructCoController(print_flag, "Got path.");
-                    delay(500);
-                }
-                navSteps.clear();
-                int number_of_steps = newpath["steps"];
-                navSteps.reserve(number_of_steps);
-                JsonArray& _journeysteps = newpath["journey"].asArray();
-                for(int i = 0; i< number_of_steps; i++){
-                    JsonObject& step = _journeysteps[i];
-                    Room _room_for_step;
-                    _room_for_step.name = step["room"].asString();
-                    _room_for_step.pos[0] = step["coords"][0];
-                    _room_for_step.pos[1] = step["coords"][1];
-                    navSteps.push_back(_room_for_step);
-                }
-                String strnumb(number_of_steps);
+    if(this_response.body.length() > 0){
+        char json[this_response.body.length()+1];
+        strcpy(json, this_response.body.c_str());
+        JsonObject& newpath = jsonBuffer.parseObject((char*)json);
+        if (newpath.success()) {
+            if (!newpath.containsKey("steps"))
+            {
+                //No steps enclosed? API must have returned nothing.
+                instructCoController(print_flag, "Pathfinding Call Returned Empty.");
+                return;
             }else{
-                instructCoController(print_flag, "Path JSON Parse Failed.");
-                delay(300);
+                instructCoController(print_flag, "Got path.");
+                delay(500);
             }
+            navSteps.clear();
+            int number_of_steps = newpath["steps"];
+            navSteps.reserve(number_of_steps);
+            JsonArray& _journeysteps = newpath["journey"].asArray();
+            for(int i = 0; i< number_of_steps; i++){
+                JsonObject& step = _journeysteps[i];
+                Room _room_for_step;
+                _room_for_step.name = step["room"].asString();
+                _room_for_step.pos[0] = step["coords"][0];
+                _room_for_step.pos[1] = step["coords"][1];
+                navSteps.push_back(_room_for_step);
+            }
+            String strnumb(number_of_steps);
+        }else{
+            instructCoController(print_flag, "Path JSON Parse Failed.");
+            delay(300);
         }
     }
+}
     
-    void refreshGoal(String _location){
-        //JsonObject& newpath = getJSON(UTILITY_HOST, 80, "/path", "");
-        //interaction with session to get the location of the next artwork to go to.
-        return;
-    }
+void refreshGoal(String _location){
+    //JsonObject& newpath = getJSON(UTILITY_HOST, 80, "/path", "");
+    //interaction with session to get the location of the next artwork to go to.
+    return;
+}
 
 //Call our REST api to queue this device for config push.
 //Occurs when the onboarding RFID is scanned. Send unique ID and name.
