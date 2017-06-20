@@ -1,4 +1,4 @@
-Things to Know:
+Things to Know (WiPy 2):
 
 HTTP:
 Getting a WiPy 2.0 to do a simple HTTP request is easy, and there are a handful of ways to do it. However, none of the ways that involve a nice API are documented in any cogent way.
