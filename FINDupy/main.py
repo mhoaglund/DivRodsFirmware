@@ -21,6 +21,7 @@ _myID = binascii.hexlify(machine.unique_id())
 _headers = { "Content-Type": "application/json;charset=UTF-8", "Accept": "application/json", "null": "null" }
 
 _FINDhost = "http://ec2-54-209-226-130.compute-1.amazonaws.com:18003/track"
+_UTILITYhost = "http://node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.com"
 _FINDport = 18003
 _FINDgroup = "mia2f"
 _FINDuser = str(_myID)
@@ -28,12 +29,13 @@ _FINDloc = "test"
 _postinterval = 2000 #how long to wait between nav calls
 _MOSTRECENT = ""
 _START = '275'
+_END = '260'
 _GOAL = '260'
 _STEPS = []
 _RECENTSTEP = -1
 _NEXTSTEP = -1
 
-_UTILITYhost = ""
+
 
 wlan = WLAN()
 wdt = machine.WDT(timeout=12000)
@@ -41,21 +43,22 @@ print(wlan.ifconfig())
 coco = cocontroller.CoController()
 coco._wait()
 
-def _get_device_setup():
-    SETUPget = urequests.get(_UTILITYhost, headers = _headers)
-    _resp = SETUPget.json()
-    print(_resp['status'])
-    SETUPget.close()
-    return 0
-    
 def _get_path(location,  destination):
-    PATHget = urequests.get(_UTILITYhost, headers = _headers)
-    return 0
-
-def _get_floor_map():
-    return 0
-
-#End Setup methods
+    global _STEPS
+    qs = "/path?deviceid=" + _FINDuser + "&start=" + location + "&end=" + destination
+    try:
+        path_get = urequests.get(_UTILITYhost + qs, headers = _headers)
+        if path_get:
+            path_json = path_get.json()
+            _STEPS = []
+            for step in range(0, len(path_json["journey"])):
+                _step = (step["name"], step["coords"][0], step["coords"][1])
+                _STEPS.append(_step)
+            console.log(_STEPS)
+        else:
+            coco._print("Post failed.")
+    except urequests.URLError as e:
+        coco._print("HTTP Error getting path.")
 
 #Utility methods
 
@@ -77,10 +80,8 @@ def _get_heading(_location, _destination):
         :param destination: xy coord array
         :param location: xy coord array
     """
-    #angle = math.degrees(math.atan2(_destination[1] - _location[1], _destination[0] - _location[0]))
     angle = math.degrees(math.atan2(_location[1] - _destination[1], _destination[0] - _location[0]))
-    #bearing1 = (angle + 360) % 360
-    bearing2 = (90 - angle ) % 360
+    bearing2 = (90 - angle) % 360
     return int(bearing2)
 #End Utility methods
 
@@ -90,33 +91,45 @@ def _update_nav_state(new):
     global _MOSTRECENT
     global _STEPS
     global _NEXTSTEP
+    global _GOAL
+    _ontrack = False
+    _atend = False
+    _stepindex = -1
+    _onstep = []
     if len(new) > 1: #trim the first character
         coco._print(new)
         if new[0] == "g":
             new = new[1:]
     if new != _MOSTRECENT: #if we've moved to a new gallery...
-        if new in _STEPS:
-                #we're on track, but are we getting colder or warmer?
-            if new == _STEPS[-1]:
+        for ind in range(0, len(_STEPS)):
+            if new == _STEPS[ind][0]:
+                _ontrack = True
+                _stepindex = ind
+                _onstep = _STEPS[ind]
+                continue
+        if _ontrack:
+            if _stepindex == len(_STEPS)-1:
                 coco._finish()
                 print("Completed journey.")
-                #new journey
-                _locindex = _STEPS.index(new)
-                _NEXTSTEP = _STEPS[_locindex + 1]
-                print("Next step: ",  _NEXTSTEP)
-                _heading = _get_heading(_NEXTSTEP,  new)
-                time.sleep(5)
-                coco._update_direction(_heading)
+                #Swapping back and forth for now.
+                #Get a new path to keep going.
+                if(_GOAL == _START):
+                    _GOAL = _END
+                else:
+                    _GOAL = _START
+                _get_path(new, _GOAL)
+                time.sleep(3)
             else:
-                _locindex = _STEPS.index(new)
-                _NEXTSTEP = _STEPS[_locindex + 1]
-                print("Next step: ",  _NEXTSTEP)
-                _heading = _get_heading(_NEXTSTEP,  new)
-                print("New heading: ",  _heading)
-                coco._update_direction(_heading)
+                _nextstep = _STEPS[_stepindex + 1]
+
+            _curr_coord = [_onstep[1], _onstep[2]]
+            _nextstep_coord = [_nextstep[1], _nextstep[2]]
+            _heading = _get_heading(_curr_coord,  _nextstep_coord)
+            coco._update_direction(_heading)
         else:
-            return True
-            #get new path! user has left the path.
+            coco._wait()
+            _get_path(new, _GOAL)
+            time.sleep(1)
         _MOSTRECENT = new
         return True
     else:
@@ -147,7 +160,7 @@ def _scan_and_post():
 pycom.heartbeat(False)
 _start = time.ticks_ms()
 time.sleep(2)
-_get_path("254",  "275")
+_get_path(_START, _GOAL)
 while True:
     if wlan.isconnected():
         if time.ticks_diff(_start, time.ticks_ms()) > _postinterval:
