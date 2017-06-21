@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-5.1.dtd">
 <!-- Pymakr project file for project test -->
-<!-- Saved: 2017-03-23, 17:39:59 -->
+<!-- Saved: 2017-06-20, 22:28:19 -->
 <!-- Copyright (C) 2017 0.1, 0.1 -->
 <Project version="5.1">
   <Language>en_US</Language>
@@ -16,7 +16,7 @@
   <Sources>
     <Source>__init__.py</Source>
     <Source>boot.py</Source>
-    <Source>lib/ssd1306.py</Source>
+    <Source>lib/cocontroller.py</Source>
     <Source>lib/urequests.py</Source>
     <Source>main.py</Source>
   </Sources>

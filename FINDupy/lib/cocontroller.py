@@ -24,6 +24,7 @@ class CoController():
         self._send('s0')
 
     def _update_direction(self, heading):
+        print("Heading:", heading)
         _msg = 'h' + str(heading)
         self._send(_msg)
 

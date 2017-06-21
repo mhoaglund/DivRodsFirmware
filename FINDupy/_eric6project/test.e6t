@@ -1,7 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-6.0.dtd">
 <!-- Pymakr tasks file for project test -->
-<!-- Saved: 2017-03-23, 18:11:21 -->
+<!-- Saved: 2017-06-20, 22:30:08 -->
 <Tasks version="6.0">
   <ProjectScanFilter></ProjectScanFilter>
+  <Task priority="1" completed="False" type="1" uid="{2fcb2627-50bd-4fe1-a462-63be1aecff6f}">
+    <Summary>TODO: Figure out specific Exception Type</Summary>
+    <Description></Description>
+    <Created>2017-06-20, 22:30:05</Created>
+    <Resource>
+      <Filename>lib/urequests.py</Filename>
+      <Linenumber>140</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" type="1" uid="{9137cc2c-1831-4d7c-b7ae-d984804d69dc}">
+    <Summary>TODO: We likely need to get some of these from the redirect</Summary>
+    <Description></Description>
+    <Created>2017-06-20, 22:30:05</Created>
+    <Resource>
+      <Filename>lib/urequests.py</Filename>
+      <Linenumber>245</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" type="1" uid="{389a061b-a118-4f82-8483-92ce8501c2a2}">
+    <Summary>TODO: POST shouldn't auto follow redirect</Summary>
+    <Description></Description>
+    <Created>2017-06-20, 22:30:05</Created>
+    <Resource>
+      <Filename>lib/urequests.py</Filename>
+      <Linenumber>246</Linenumber>
+    </Resource>
+  </Task>
 </Tasks>

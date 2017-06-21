@@ -25,6 +25,7 @@ _UTILITYhost = "http://node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.co
 _FINDport = 18003
 _FINDgroup = "mia2f"
 _FINDuser = str(_myID)
+#_FINDuser = "meeeee"
 _FINDloc = "test"
 _postinterval = 2000 #how long to wait between nav calls
 _MOSTRECENT = ""
@@ -45,20 +46,24 @@ coco._wait()
 
 def _get_path(location,  destination):
     global _STEPS
-    qs = "/path?deviceid=" + _FINDuser + "&start=" + location + "&end=" + destination
     try:
-        path_get = urequests.get(_UTILITYhost + qs, headers = _headers)
+        qparams = {"deviceid":_FINDuser, "start": location,  "end": destination}
+        path_get = urequests.get("http://node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.com/path", qparams,  headers = _headers)
         if path_get:
             path_json = path_get.json()
             _STEPS = []
+            print(len(path_json["journey"]))
             for step in range(0, len(path_json["journey"])):
-                _step = (step["name"], step["coords"][0], step["coords"][1])
+                _jsonstep = path_json["journey"][step]
+                _step = (_jsonstep["room"], _jsonstep["coords"][0], _jsonstep["coords"][1])
                 _STEPS.append(_step)
-            console.log(_STEPS)
+            print(_STEPS)
         else:
             coco._print("Post failed.")
+            print("getting path failed")
     except urequests.URLError as e:
         coco._print("HTTP Error getting path.")
+        print(e)
 
 #Utility methods
 
@@ -93,20 +98,17 @@ def _update_nav_state(new):
     global _NEXTSTEP
     global _GOAL
     _ontrack = False
-    _atend = False
     _stepindex = -1
     _onstep = []
     if len(new) > 1: #trim the first character
         coco._print(new)
         if new[0] == "g":
             new = new[1:]
-    if new != _MOSTRECENT: #if we've moved to a new gallery...
         for ind in range(0, len(_STEPS)):
             if new == _STEPS[ind][0]:
                 _ontrack = True
                 _stepindex = ind
                 _onstep = _STEPS[ind]
-                continue
         if _ontrack:
             if _stepindex == len(_STEPS)-1:
                 coco._finish()
@@ -121,7 +123,6 @@ def _update_nav_state(new):
                 time.sleep(3)
             else:
                 _nextstep = _STEPS[_stepindex + 1]
-
             _curr_coord = [_onstep[1], _onstep[2]]
             _nextstep_coord = [_nextstep[1], _nextstep[2]]
             _heading = _get_heading(_curr_coord,  _nextstep_coord)
@@ -130,7 +131,6 @@ def _update_nav_state(new):
             coco._wait()
             _get_path(new, _GOAL)
             time.sleep(1)
-        _MOSTRECENT = new
         return True
     else:
         coco._print("Empty Location.")
@@ -146,6 +146,7 @@ def _scan_and_post():
         if FINDpost:
             _rjson = FINDpost.json()
             locationname = _rjson['location']
+            print(locationname)
             _update_nav_state(locationname)
             pycom.rgbled(0x7f0000)
         else:
