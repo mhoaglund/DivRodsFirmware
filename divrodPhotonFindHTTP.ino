@@ -121,7 +121,8 @@ int calculateHeading(int from[2], int to[2]){
     int diff_x = from[0] - to[0];
     float rad_angle = atan2(diff_y, diff_x);
     int deg_angle = rad_angle * 180 / M_PI;
-    int bearing = (deg_angle + 360) % 360;
+    //int bearing = (deg_angle + 360) % 360;
+    int bearing = (90 - deg_angle) % 360;
     return bearing;
 }
 
@@ -169,7 +170,7 @@ void wd_exit(){
 
 //master method to update variables and request a new set of steps to destination
 void updateNavigation(String _location){
-    if(actual_location == _location | _location == "0"){
+    if(_location == "0"){
         return;
     }
     actual_location = _location;
@@ -210,8 +211,9 @@ void updateNavigation(String _location){
         }
         else{
             //Moving along the path, get the next step.
-            int targetstep = _stepindex + 1;
-            updateHeading(navSteps[_stepindex], navSteps[_stepindex + 1]);
+            if(actual_location != _location){
+                updateHeading(navSteps[_stepindex], navSteps[_stepindex + 1]);
+            }
         }
     }
     else{ //get a new path based on where the user has ended up
@@ -257,7 +259,7 @@ void refreshPathJson(String _location, String _destination){
                 JsonObject& step = _journeysteps[i];
                 Room _room_for_step;
                 _room_for_step.name = step["room"].asString();
-                _roomnames = _roomnames + ", " + step["room"].asString();
+                _roomnames = _roomnames + step["room"].asString() + ", ";
                 _room_for_step.pos[0] = step["coords"][0];
                 _room_for_step.pos[1] = step["coords"][1];
                 navSteps.push_back(_room_for_step);

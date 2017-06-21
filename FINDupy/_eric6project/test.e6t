@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-6.0.dtd">
 <!-- Pymakr tasks file for project test -->
-<!-- Saved: 2017-06-20, 22:30:08 -->
+<!-- Saved: 2017-06-20, 23:30:34 -->
 <Tasks version="6.0">
   <ProjectScanFilter></ProjectScanFilter>
   <Task priority="1" completed="False" type="1" uid="{2fcb2627-50bd-4fe1-a462-63be1aecff6f}">

@@ -87,9 +87,9 @@ celerybeat-schedule
 .env
 
 # These whacked out pymakr project files
-.e4p
-.e4q
-.e6t
+*.e4p
+*.e4q
+*.e6t
 
 # virtualenv
 .venv
