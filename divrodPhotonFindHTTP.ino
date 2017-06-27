@@ -1,6 +1,8 @@
 // This #include statement was automatically added by the Particle IDE.
-#define _USE_MATH_DEFINES
 #include <SparkJson.h>
+
+// This #include statement was automatically added by the Particle IDE.
+#define _USE_MATH_DEFINES
 #include <Adafruit_SSD1306.h>
 #include <cmath>
 
@@ -69,10 +71,9 @@ void setup() {
     Particle.function("loc_input", updatelocinput);
     Particle.function("do_onboard", onboard);
     Particle.function("show_onboard", onboard_response);
-
-    //refreshPathJson(goal1,goal2);
-    refreshPathJson();
-    delay(1000);
+    current_goal = "276";
+    //refreshPathJson(goal1,current_goal);
+    //refreshPathJson();
     instructCoController(print_flag, "Hello from Photon!");
 }
 
@@ -85,21 +86,17 @@ String parseLocation(String _host, int _port, String _path, String _body){
     this_request.body = _body;
     //get deviceid in here
     http.post(this_request, this_response, headers);
-    StaticJsonBuffer<2500> jsonBuffer;
-    char json[this_response.body.length()+1];
+
     if(this_response.body.length() > 0){
-        strcpy(json, this_response.body.c_str());
-        JsonObject& root = jsonBuffer.parseObject((char*)json);
-        if (root.success()) {
-            const char* msg = root["location"];
-            String out(msg);
-            if(out == ""){
-                out = "Empty location.";
-            }else out = msg;
-            return String(out);
-        }else{
-            return "0";
-        }
+        //In a dense area, the response from FIND is big. Can't parse it with json.
+        int _spot = this_response.body.indexOf("location:");
+        if(_spot != -1){
+            String _locationstring = this_response.body.substring(_spot+10, _spot+14);
+            if(String(_locationstring.charAt(0)) == "g"){
+                return _locationstring;
+            }
+            else return "";
+        } else return "";
     }
 }
 
@@ -109,6 +106,7 @@ void instructCoController(char command, String payload){
     Serial1.print(payload);
     Serial1.print('>');
 }
+
 void instructCoController(char command, int payload){
     Serial1.print('<');
     Serial1.print(command);
@@ -116,21 +114,23 @@ void instructCoController(char command, int payload){
     Serial1.print('>');
 }
 
+//int calculateHeading(int from[2], int to[2]){
 int calculateHeading(int from[2], int to[2]){
     int diff_y = from[1] - to[1];
     int diff_x = from[0] - to[0];
     float rad_angle = atan2(diff_y, diff_x);
     int deg_angle = rad_angle * 180 / M_PI;
-    //int bearing = (deg_angle + 360) % 360;
     int bearing = (90 - deg_angle) % 360;
     return bearing;
 }
 
 void updateHeading(Room current, Room next){
     int heading = calculateHeading(current.pos, next.pos);
+    String headinginfo = "H " + String(heading) + " from " + current.name + " to " + next.name;
+    instructCoController(print_flag, "Photon Error...");
     instructCoController(headingflag, heading);
+    delay(1000);
 }
-
 /*
     A user wants to configure this device to help FIND learn a location.
     The name of the location the user wants to track will come in here.
@@ -169,14 +169,17 @@ void wd_exit(){
 }
 
 //master method to update variables and request a new set of steps to destination
+//TODO: rework to use standard strings. Something's up with the String object, and its
+//not getting passed to our fucking functions.
 void updateNavigation(String _location){
-    if(_location == "0"){
+    String the_goal(current_goal);
+    if(_location.length() != 3){
         return;
     }
-    actual_location = _location;
     if(navSteps.empty()){
         instructCoController(waitflag, '0');
-        refreshPathJson(_location, current_goal);
+        refreshPathJson(_location, the_goal);
+        return;
     }
     int _stepindex = 99;
     bool _onTrack = false;
@@ -202,6 +205,7 @@ void updateNavigation(String _location){
             instructCoController(successflag, '0');
             if(current_goal == goal1) current_goal = goal2;
             else if(current_goal == goal2) current_goal = goal1;
+            refreshPathJson(_location, the_goal);
             //Play success routine, then put arduino in color signal mode
             //and wait for serial response from arduino.
             //Upon arrival of RFID and pref data:
@@ -211,21 +215,24 @@ void updateNavigation(String _location){
         }
         else{
             //Moving along the path, get the next step.
-            if(actual_location != _location){
-                updateHeading(navSteps[_stepindex], navSteps[_stepindex + 1]);
-            }
+            int targetstep = _stepindex + 1;
+            updateHeading(navSteps[_stepindex], navSteps[_stepindex + 1]);
         }
     }
     else{ //get a new path based on where the user has ended up
         instructCoController(waitflag, '0');
-        refreshPathJson(_location, current_goal);
+        refreshPathJson(_location, the_goal);
     }
+    actual_location = _location;
 }
 /*
     Retrieve a new path from the server based on current location and goal.
     Parses JSON response into Vector of Rooms.
 */
 void refreshPathJson(String _location, String _destination){
+    String _locs = "Path points: " + _location + ", " + _destination;
+    instructCoController(print_flag, _locs);
+    delay(800);
     String qs = "&start=" + _location + "&end=" + _destination;
     StaticJsonBuffer<1500> jsonBuffer;
     http_request_t this_request;
@@ -272,6 +279,7 @@ void refreshPathJson(String _location, String _destination){
         }
     }
 }
+
 void refreshPathJson(){
     StaticJsonBuffer<1500> jsonBuffer;
     http_request_t this_request;
@@ -376,8 +384,9 @@ void loop() {
         String clean(_location);
         if(String(clean.charAt(0)) == "g"){
             clean.remove(0,1);
+            updateNavigation(clean);
         }
-        updateNavigation(clean);
+        
         output = clean;
     }
         
