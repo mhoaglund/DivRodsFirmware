@@ -59,6 +59,7 @@ const char colorflag = 'c';
 String goal1 = "259";
 String goal2 = "276";
 String current_goal = "276";
+int int_goal = 276;
 
 void setup() {
     Time.zone(-6); //US central
@@ -127,9 +128,9 @@ int calculateHeading(int from[2], int to[2]){
 void updateHeading(Room current, Room next){
     int heading = calculateHeading(current.pos, next.pos);
     String headinginfo = "H " + String(heading) + " from " + current.name + " to " + next.name;
-    instructCoController(print_flag, "Photon Error...");
+    instructCoController(print_flag, headinginfo);
     instructCoController(headingflag, heading);
-    delay(1000);
+    delay(1500);
 }
 /*
     A user wants to configure this device to help FIND learn a location.
@@ -172,7 +173,7 @@ void wd_exit(){
 //TODO: rework to use standard strings. Something's up with the String object, and its
 //not getting passed to our fucking functions.
 void updateNavigation(String _location){
-    String the_goal(current_goal);
+    String the_goal(int_goal);
     if(_location.length() != 3){
         return;
     }
