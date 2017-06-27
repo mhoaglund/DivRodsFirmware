@@ -3,7 +3,6 @@
 
 // This #include statement was automatically added by the Particle IDE.
 #define _USE_MATH_DEFINES
-#include <Adafruit_SSD1306.h>
 #include <cmath>
 
 #include "application.h"
@@ -115,13 +114,15 @@ void instructCoController(char command, int payload){
     Serial1.print('>');
 }
 
-//int calculateHeading(int from[2], int to[2]){
 int calculateHeading(int from[2], int to[2]){
     int diff_y = from[1] - to[1];
     int diff_x = from[0] - to[0];
     float rad_angle = atan2(diff_y, diff_x);
-    int deg_angle = rad_angle * 180 / M_PI;
+    int deg_angle = rad_angle * (180 / M_PI);
     int bearing = (90 - deg_angle) % 360;
+    if(bearing < 0){
+        bearing = 360 + bearing;
+    }
     return bearing;
 }
 
