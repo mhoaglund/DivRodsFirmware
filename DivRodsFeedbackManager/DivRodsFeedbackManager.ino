@@ -225,7 +225,7 @@ void loop() {
     }
         case 'f':{
           //flash white while reading from rfid...
-          int _chan = computeChannel();
+          int _chan = computeChannel(2);
           fullColorWipe(strip.Color(_chan, _chan, _chan));
           break;
         }
