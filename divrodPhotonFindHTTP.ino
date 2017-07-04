@@ -52,7 +52,7 @@ const char waitflag = 'w';
 const char successflag = 's';
 const char errorflag = 'e';
 const char print_flag = 'p';
-const char colorflag = 'c';
+const char rgbflag = 'c';
 
 const char rfidflag = 'f';
 
@@ -73,7 +73,6 @@ void setup() {
     
     Serial.println("Starting!");
     Particle.variable("loc_actual", actual_location);
-    Particle.function("loc_input", updatelocinput);
     Particle.function("do_onboard", onboard);
     Particle.function("show_onboard", onboard_response);
     current_goal = "276";
