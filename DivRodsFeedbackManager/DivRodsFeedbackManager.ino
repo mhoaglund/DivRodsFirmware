@@ -44,7 +44,10 @@ const char waitflag = 'w';
 const char successflag = 's';
 const char errorflag = 'e';
 const char printflag = 'p';
+const char rgbflag = 'c';
 char _mode = 'h';
+
+int cueColor[] = {125,125,125};
 
 boolean newData = false;
 String cmdcache = "";
@@ -265,6 +268,29 @@ void loop() {
           fullColorWipe(strip.Color(chan, chan, 0));
           break;
         }
+        case 'c':{
+          //displaying a cue color to direct user to scan a matching tag.
+          if(_shouldFlash){
+            if(_flashcount < 4){
+              if(fadedirection) fadecounter += 1;
+              if(!fadedirection) fadecounter -= 1;
+              if(fadecounter > fadeinterval) fadedirection = false;
+              if(fadecounter < 1){
+                fadedirection = true;
+                _flashcount++;
+              }
+              int brightness = map(fadecounter, 0, fadeinterval, 150, 250);
+              strip.setBrightness(brightness);
+            }
+            else{
+              strip.setBrightness(150);
+              _flashcount = 0;
+              _shouldFlash = false;
+            }
+            }
+          fullColorWipe(strip.Color(cueColor[0], cueColor[0], cueColor[0]));
+          break;
+        }
     case 'e':{ //error state
       if(fadedirection) fadecounter++;
       if(!fadedirection) fadecounter--;
@@ -370,19 +396,31 @@ void applySerialCommand(String serialcommand){
         return;
       }
       if(serialcommand[0] == headingflag){
-        _mode = 'h';
+        _mode = headingflag;
         _shouldFlash = true;
         serialcommand.remove(0,1);
         heading_offset_index = roundHeading(serialcommand.toInt());
       }
+      else if(receivedChars[0] == rgbflag){
+        _mode = rgbflag;
+        char* rgbvals = strtok(receivedChars, ".");
+        byte i = 0;
+        while (rgbvals != 0){
+          int color = atoi(rgbvals);
+            cueColor[i] = color;
+            i++;
+          rgbvals = strtok(0, "&");
+        }
+        //TODO: send rbg vals from photon and figure out how to parse
+      }
       else if(receivedChars[0] == waitflag){
-        _mode = 'w';
+        _mode = waitflag;
       }
       else if(receivedChars[0] == successflag){
-        _mode = 's';
+        _mode = successflag;
       }
       else if(receivedChars[0] == errorflag){
-        _mode = 'e';
+        _mode = errorflag;
       }
       else if(receivedChars[0] == printflag){
         display.clearDisplay();

@@ -23,7 +23,7 @@ unsigned int nextTime = 0;
 HttpClient http;
 STARTUP(WiFi.selectAntenna(ANT_EXTERNAL)); 
 
-ApplicationWatchdog wd(20000, wd_exit);
+ApplicationWatchdog wd(15000, wd_exit);
 
 // Headers currently need to be set at init, useful for API keys etc.
 http_header_t headers[] = {
@@ -34,7 +34,6 @@ http_header_t headers[] = {
 
 unsigned char nl = '\n';
 String UTILITY_HOST = "node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.com";
-String TRACKING_HOST = "ec2-54-209-226-130.compute-1.amazonaws.com";
 String GROUP = "mia2f";
 String USER = System.deviceID();
 String MODE = "/track";
@@ -54,6 +53,12 @@ const char successflag = 's';
 const char errorflag = 'e';
 const char print_flag = 'p';
 const char colorflag = 'c';
+
+const char rfidflag = 'f';
+
+boolean newData = false;
+const byte numChars = 32;
+char receivedChars[numChars];
 
 String goal1 = "259";
 String goal2 = "276";
@@ -77,27 +82,32 @@ void setup() {
     instructCoController(print_flag, "Hello from Photon!");
 }
 
-String parseLocation(String _host, int _port, String _path, String _body){
+String postLocationFromUAPI(String _host, int _port, String _path, String _body){
     http_request_t this_request;
     http_response_t this_response;
     this_request.hostname = _host;
     this_request.port = _port;
-    this_request.path = _path;
+    this_request.path = _path + "?deviceid=" + myID;
     this_request.body = _body;
+    http.post(this_request, this_response, headers);
+
+    if(this_response.body.length() > 0){
+        return this_response.body;
+        } else return "";
+}
+
+String getStringFromUAPI(String _host, int _port, String _path){
+    http_request_t this_request;
+    http_response_t this_response;
+    this_request.hostname = _host;
+    this_request.port = _port;
+    this_request.path = _path + "?deviceid=" + myID;
     //get deviceid in here
     http.post(this_request, this_response, headers);
 
     if(this_response.body.length() > 0){
-        //In a dense area, the response from FIND is big. Can't parse it with json.
-        int _spot = this_response.body.indexOf("location:");
-        if(_spot != -1){
-            String _locationstring = this_response.body.substring(_spot+10, _spot+14);
-            if(String(_locationstring.charAt(0)) == "g"){
-                return _locationstring;
-            }
-            else return "";
+        return this_response.body;
         } else return "";
-    }
 }
 
 void instructCoController(char command, String payload){
@@ -132,23 +142,6 @@ void updateHeading(Room current, Room next){
     instructCoController(print_flag, headinginfo);
     instructCoController(headingflag, heading);
     delay(1500);
-}
-/*
-    A user wants to configure this device to help FIND learn a location.
-    The name of the location the user wants to track will come in here.
-*/
-int updatelocinput(String command) {
-
-    if(command == "off" | command == ""){
-        location_input = "";
-        MODE = "/track";
-        return 2;
-    }
-    else{
-        location_input = command;
-        MODE = "/learn";
-        return 1;
-    }
 }
 
 //Called by the utility API with user setup information.
@@ -204,9 +197,9 @@ void updateNavigation(String _location){
     if(_onTrack){
         if(_atEnd){
             //Reached the goal!
-            instructCoController(successflag, '0');
-            if(current_goal == goal1) current_goal = goal2;
-            else if(current_goal == goal2) current_goal = goal1;
+            //instructCoController(successflag, '0');
+            instructCoController(rgbflag, '125.125.125');
+            refreshGoal();
             refreshPathJson(_location, the_goal);
             //Play success routine, then put arduino in color signal mode
             //and wait for serial response from arduino.
@@ -326,8 +319,8 @@ void refreshPathJson(){
     }
 }
     
-void refreshGoal(String _location){
-    //interaction with session to get the location of the next artwork to go to.
+void refreshGoal(){
+    int_goal = getStringFromUAPI(UTILITY_HOST, 80, "/path/next").toInt();
     return;
 }
 
@@ -373,14 +366,19 @@ String gatherAPs(){
 }
 
 void loop() {
+    recvWithStartEndMarkers();
+    if (newData == true) {
+        newData = false;
+        String temp(receivedChars);
+        applySerialCommand(temp);
+    }
     if (nextTime > millis()) {
         return;
     }
     String output = "";
     String body_start = "{\"group\":\""+GROUP+"\",\"username\":\""+USER+"\",\"location\":\"somewhere\",\"time\":12309123,\"wifi-fingerprint\":[";
     body_start = body_start + gatherAPs();
-
-    String _location = parseLocation(TRACKING_HOST, 18003, "/track", body_start);
+    String _location = postLocationFromUAPI(UTILITY_HOST, 80, "/locate", body_start);
     
     if(_location != ""){
         String clean(_location);
@@ -400,4 +398,42 @@ void loop() {
     wd.checkin();
     delay(250);
     nextTime = millis() + 1500;
+}
+
+void recvWithStartEndMarkers() {
+    static boolean recvInProgress = false;
+    static byte ndx = 0;
+    char startMarker = '<';
+    char endMarker = '>';
+    char rc;
+ 
+    while (Serial.available() > 0 && newData == false) {
+        rc = Serial.read();
+
+        if (recvInProgress == true) {
+            if (rc != endMarker) {
+                receivedChars[ndx] = rc;
+                ndx++;
+                if (ndx >= numChars) {
+                    ndx = numChars - 1;
+                }
+            }
+            else {
+                receivedChars[ndx] = '\0'; // terminate the string
+                recvInProgress = false;
+                ndx = 0;
+                newData = true;
+            }
+        }
+
+        else if (rc == startMarker) {
+            recvInProgress = true;
+        }
+    }
+}
+
+void applySerialCommand(String serialcommand){
+      if(serialcommand[0] == rfidflag){
+
+      }
 }
