@@ -28,7 +28,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, RING_DATA_PIN, NEO_GRB + NEO_KHZ
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
 #define OLED_RESET 10
-Adafruit_SSD1306 display(OLED_RESET);
+Adafruit_SSD1306 display(OLED_RESET); //30% of memory right here!
 
 const byte numChars = 32;
 char receivedChars[numChars];
@@ -51,11 +51,10 @@ int cueColor[] = {125,125,125};
 
 boolean newData = false;
 String cmdcache = "";
-int CURRENT_HEADING = 0;
 long previousMillis = 0;
-const int heading_interval = 75;
 byte heading_offset_index = 0;
 
+//TODO redo this so it isn't a global.
  byte LED_MAP[][12] = {
   {0,1,2,3,4,5,6,7,8,9,10,11},
   {11,0,1,2,3,4,5,6,7,8,9,10},
@@ -93,10 +92,6 @@ void setup() {
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setCursor(0,0);
-  display.println("Divining Rods Prototype");
-  display.display();
-  delay(1000);
-  display.clearDisplay();
 }
 
 int targetled = 0;
@@ -108,7 +103,6 @@ int _flashcount = 0;
 int _bothheld = 0;
 int _leftheld = 0;
 int _rightheld = 0;
-int _btnfeedback = 0;
 byte _maxfeedbackloops = 4;
 byte _feedbackloops = 0;
 int _btninterval = 750;
@@ -163,14 +157,14 @@ void loop() {
     } 
   }
   
-  if(currentMillis - previousMillis > heading_interval){
+  if(currentMillis - previousMillis > 75){
     previousMillis = currentMillis;
     sensors_event_t event; 
     bno.getEvent(&event);
     int headingint = (int)event.orientation.x;
     targetled = mapheadingtoLED(headingint, LED_MAP[heading_offset_index]);
     int attitude = (int)event.orientation.y;
-    if(attitude > 60){
+    if(attitude > 35){
       strip.setBrightness(15);
     }else{
       strip.setBrightness(125);
@@ -231,41 +225,20 @@ void loop() {
     }
         case 'f':{
           //flash white while reading from rfid...
-          if(fadedirection) fadecounter += 2;
-          if(!fadedirection) fadecounter -= 2;
-          if(fadecounter > fadeinterval){
-            fadedirection = false;
-            _feedbackloops++;
-          }
-          if(fadecounter < 1) fadedirection = true;
-          int chan = map(fadecounter, 0, fadeinterval, 25, 255);
-          fullColorWipe(strip.Color(chan, chan, chan));
+          int _chan = computeChannel();
+          fullColorWipe(strip.Color(_chan, _chan, _chan));
           break;
         }
         case 'r':{
           //user registering approval. go blue.
-          if(fadedirection) fadecounter += 2;
-          if(!fadedirection) fadecounter -= 2;
-          if(fadecounter > fadeinterval){
-            fadedirection = false;
-            _feedbackloops++;
-          }
-          if(fadecounter < 1) fadedirection = true;
-          int chan = map(fadecounter, 0, fadeinterval, 25, 255);
-          fullColorWipe(strip.Color(15, 25, chan));
+          int _chan = computeChannel(2);
+          fullColorWipe(strip.Color(15, 25, _chan));
           break;
         }
         case 'l':{
           //user registering disapproval. go yellow.
-          if(fadedirection) fadecounter += 2;
-          if(!fadedirection) fadecounter -= 2;
-          if(fadecounter > fadeinterval){
-            fadedirection = false;
-            _feedbackloops++;
-          }
-          if(fadecounter < 1) fadedirection = true;
-          int chan = map(fadecounter, 0, fadeinterval, 25, 255);
-          fullColorWipe(strip.Color(chan, chan, 0));
+          int _chan = computeChannel(2);
+          fullColorWipe(strip.Color(_chan, _chan, 0));
           break;
         }
         case 'c':{
@@ -292,17 +265,26 @@ void loop() {
           break;
         }
     case 'e':{ //error state
-      if(fadedirection) fadecounter++;
-      if(!fadedirection) fadecounter--;
-      if(fadecounter > fadeinterval) fadedirection = false;
-      if(fadecounter < 1) fadedirection = true;
-      int rchan = map(fadecounter, 0, fadeinterval, 25, 255);
-      fullColorWipe(strip.Color(rchan, 50, 25));
+      int _chan = computeChannel(2);
+      fullColorWipe(strip.Color(_chan, 50, 25));
       break;
     }
     default: 
     break;
   }
+}
+
+int computeChannel(byte increment){
+  //user registering approval. go blue.
+  if(fadedirection) fadecounter += increment;
+  if(!fadedirection) fadecounter -= increment;
+  if(fadecounter > fadeinterval){
+    fadedirection = false;
+    _feedbackloops++;
+  }
+  if(fadecounter < 1) fadedirection = true;
+  int chan = map(fadecounter, 0, fadeinterval, 25, 255);
+  return chan;
 }
 
 uint32_t mapheadingtoLED(int heading, byte indices[]){
