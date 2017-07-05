@@ -395,7 +395,6 @@ void loop() {
     
     instructCoController(print_flag, output);
     wd.checkin();
-    delay(250);
     nextTime = millis() + 1500;
 }
 
