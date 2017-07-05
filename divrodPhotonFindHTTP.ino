@@ -34,13 +34,13 @@ http_header_t headers[] = {
 
 unsigned char nl = '\n';
 String UTILITY_HOST = "node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.com";
+//String UTILITY_HOST = "c3fc3d5f.ngrok.io";
 String GROUP = "mia2f";
 String USER = System.deviceID();
 String MODE = "/track";
 
 String location_input = "";
 String actual_location = "";
-String _goal = "";
 
 String myID = "";
 
@@ -62,7 +62,6 @@ char receivedChars[numChars];
 
 String goal1 = "259";
 String goal2 = "276";
-String current_goal = "276";
 int int_goal = 276;
 
 void setup() {
@@ -75,9 +74,9 @@ void setup() {
     Particle.variable("loc_actual", actual_location);
     Particle.function("do_onboard", onboard);
     Particle.function("show_onboard", onboard_response);
-    current_goal = "276";
     //refreshPathJson(goal1,current_goal);
     //refreshPathJson();
+    refreshGoal();
     instructCoController(print_flag, "Hello from Photon!");
 }
 
@@ -102,7 +101,7 @@ String getStringFromUAPI(String _host, int _port, String _path){
     this_request.port = _port;
     this_request.path = _path + "?deviceid=" + myID;
     //get deviceid in here
-    http.post(this_request, this_response, headers);
+    http.get(this_request, this_response, headers);
 
     if(this_response.body.length() > 0){
         return this_response.body;
@@ -124,7 +123,7 @@ void instructCoController(char command, int payload){
 }
 
 int calculateHeading(int from[2], int to[2]){
-    int diff_y = from[1] - to[1];
+    int diff_y = to[1] - from[1];
     int diff_x = from[0] - to[0];
     float rad_angle = atan2(diff_y, diff_x);
     int deg_angle = rad_angle * (180 / M_PI);
@@ -195,11 +194,11 @@ void updateNavigation(String _location){
     }
     if(_onTrack){
         if(_atEnd){
-            //Reached the goal!
-            //instructCoController(successflag, '0');
-            instructCoController(rgbflag, '125.125.125');
+            //Reached the destination gallery, display tag color...
+            //instructCoController(rgbflag, '125.125.125');
             refreshGoal();
-            refreshPathJson(_location, the_goal);
+            String new_goal(int_goal);
+            refreshPathJson(_location, new_goal);
             //Play success routine, then put arduino in color signal mode
             //and wait for serial response from arduino.
             //Upon arrival of RFID and pref data:
@@ -320,6 +319,10 @@ void refreshPathJson(){
     
 void refreshGoal(){
     int_goal = getStringFromUAPI(UTILITY_HOST, 80, "/path/next").toInt();
+    if(int_goal == 0){
+        instructCoController(print_flag, "Empty goal gallery...");
+        delay(1000);
+    }
     return;
 }
 
