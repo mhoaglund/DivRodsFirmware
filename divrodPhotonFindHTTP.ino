@@ -99,7 +99,7 @@ String getStringFromUAPI(String _host, int _port, String _path){
     http_response_t this_response;
     this_request.hostname = _host;
     this_request.port = _port;
-    this_request.path = _path + "?deviceid=" + myID;
+    this_request.path = _path + "?deviceid=" + myID + "&location=" + actual_location;
     //get deviceid in here
     http.get(this_request, this_response, headers);
 
@@ -388,14 +388,13 @@ void loop() {
             clean.remove(0,1);
             updateNavigation(clean);
         }
-        
         output = clean;
     }
-        
-    if(output == ""){
+    else{
         output = "No output.";
+        instructCoController(waitflag, 0);
     }
-    
+
     instructCoController(print_flag, output);
     wd.checkin();
     nextTime = millis() + 1500;
