@@ -33,8 +33,8 @@ http_header_t headers[] = {
 };
 
 unsigned char nl = '\n';
-String UTILITY_HOST = "node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.com";
-//String UTILITY_HOST = "c3fc3d5f.ngrok.io";
+//String UTILITY_HOST = "node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.com";
+String UTILITY_HOST = "c3fc3d5f.ngrok.io";
 String GROUP = "mia2f";
 String USER = System.deviceID();
 String MODE = "/track";
@@ -47,6 +47,7 @@ String myID = "";
 http_request_t request;
 http_response_t response;
 
+//outbound
 const char headingflag = 'h';
 const char waitflag = 'w';
 const char successflag = 's';
@@ -54,7 +55,9 @@ const char errorflag = 'e';
 const char print_flag = 'p';
 const char rgbflag = 'c';
 
+//inbound
 const char rfidflag = 'f';
+const char statusflag = 'x';
 
 boolean newData = false;
 const byte numChars = 32;
@@ -72,8 +75,6 @@ void setup() {
     
     Serial.println("Starting!");
     Particle.variable("loc_actual", actual_location);
-    Particle.function("do_onboard", onboard);
-    Particle.function("show_onboard", onboard_response);
     //refreshPathJson(goal1,current_goal);
     //refreshPathJson();
     refreshGoal();
@@ -100,6 +101,20 @@ String getStringFromUAPI(String _host, int _port, String _path){
     this_request.hostname = _host;
     this_request.port = _port;
     this_request.path = _path + "?deviceid=" + myID + "&location=" + actual_location;
+    //get deviceid in here
+    http.get(this_request, this_response, headers);
+
+    if(this_response.body.length() > 0){
+        return this_response.body;
+        } else return "";
+}
+
+String getStringFromUAPI(String _host, int _port, String _path, String _query){
+    http_request_t this_request;
+    http_response_t this_response;
+    this_request.hostname = _host;
+    this_request.port = _port;
+    this_request.path = _path + "?deviceid=" + myID + "&location=" + actual_location + "&" + _query;
     //get deviceid in here
     http.get(this_request, this_response, headers);
 
@@ -140,19 +155,6 @@ void updateHeading(Room current, Room next){
     instructCoController(print_flag, headinginfo);
     instructCoController(headingflag, heading);
     delay(1500);
-}
-
-//Called by the utility API with user setup information.
-//TODO: parse the setup string and get variables set.
-int onboard(String command){
-    delay(2000);
-    return 5;
-}
-
-int onboard_response(String command){
-    instructCoController(waitflag, 0);
-    delay(2000);
-    return 5;
 }
 
 void wd_exit(){
@@ -372,7 +374,7 @@ void loop() {
     if (newData == true) {
         newData = false;
         String temp(receivedChars);
-        applySerialCommand(temp);
+        applySerialReport(temp);
     }
     if (nextTime > millis()) {
         return;
@@ -432,8 +434,14 @@ void recvWithStartEndMarkers() {
     }
 }
 
-void applySerialCommand(String serialcommand){
+void applySerialReport(String serialcommand){
       if(serialcommand[0] == rfidflag){
-
+          serialcommand.remove(0,1);
+          String nextgallery = getStringFromUAPI(UTILITY_HOST, 80, "/artwork", "artid=" + serialcommand);
+        //Got a scanned RFID tag!
+      }
+      if(serialcommand[0] == statusflag){
+        return;
+        //status from arduino. this is either a low battery or a fault.
       }
 }
