@@ -240,7 +240,7 @@ void loop() {
               _shouldFlash = false;
             }
             }
-          fullColorWipe(strip.Color(cueColor[0], cueColor[0], cueColor[0]));
+          fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
           break;
         }
     case 'e':{ //error state
@@ -253,39 +253,31 @@ void loop() {
 }
 
 void awaitRFIDscan(){
-  if(fadedirection) fadecounter += increment;
-  if(!fadedirection) fadecounter -= increment;
-  if(fadecounter > fadeinterval){
-    fadedirection = false;
-    _feedbackloops++;
-  }
-  if(fadecounter < 1) fadedirection = true;
-  
   boolean success;
   uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };
   uint8_t uidLength;
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, &uid[0], &uidLength);
   
-  if (success) {
-    auth = nfc.mifareclassic_AuthenticateBlock (uid, uidLength, 4, 1, keyuniversal);
-    if(auth){
-      blockdata = nfc.mifareclassic_ReadDataBlock(4, data);
-      if(blockdata){
-        Serial.print("<f");
-        //Artid's are 32-bit integers. Send it upstream to the photon.
-        long read_artid;
+ if (success) {
+   auth = nfc.mifareclassic_AuthenticateBlock (uid, uidLength, 4, 1, keyuniversal);
+   if(auth){
+     blockdata = nfc.mifareclassic_ReadDataBlock(4, data);
+     if(blockdata){
+       Serial.print("<f");
+       //Artid's are 32-bit integers. Send it upstream to the photon.
+       long read_artid;
 
-            read_artid =  (long)data[0] << 24;
-            read_artid += (long)data[1] << 16;
-            read_artid += (long)data[2] << 8;
-            read_artid += (long)data[3];
+           read_artid =  (long)data[0] << 24;
+           read_artid += (long)data[1] << 16;
+           read_artid += (long)data[2] << 8;
+           read_artid += (long)data[3];
 
-        Serial.print(read_artid, DEC);
-        Serial.print(">");
-      }
-    }
-  delay(100);
-  }
+       Serial.print(read_artid, DEC);
+       Serial.print(">");
+     }
+   }
+ delay(100);
+ }
 }
 
 byte computeChannel(byte increment){
@@ -399,15 +391,18 @@ void applySerialCommand(String serialcommand){
       }
       else if(receivedChars[0] == rgbflag){
         _mode = rgbflag;
+        _shouldFlash = true;
         char* rgbvals = strtok(receivedChars, ".");
         byte i = 0;
+        //packet looks like this: <c.125.125.125>
         while (rgbvals != 0){
-          int color = atoi(rgbvals);
-            cueColor[i] = color;
-            i++;
-          rgbvals = strtok(0, "&");
+            int color = atoi(rgbvals);
+            if(color > 0){
+                cueColor[i] = color;
+                i++;                
+            }
+          rgbvals = strtok(0, ".");
         }
-        //TODO: send rbg vals from photon and figure out how to parse
       }
       else if(receivedChars[0] == waitflag){
         _mode = waitflag;

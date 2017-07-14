@@ -55,6 +55,12 @@ const char errorflag = 'e';
 const char print_flag = 'p';
 const char rgbflag = 'c';
 
+//rbg values to send over serial
+const String yellow = ".180.250.80";
+const String purple = ".25.2.255";
+const String red = ".255.5.50";
+const String cyan = ".2.50.255";
+
 //inbound
 const char rfidflag = 'f';
 const char statusflag = 'x';
