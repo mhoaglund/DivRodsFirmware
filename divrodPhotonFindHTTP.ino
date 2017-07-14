@@ -60,6 +60,7 @@ const String yellow = ".180.250.80";
 const String purple = ".25.2.255";
 const String red = ".255.5.50";
 const String cyan = ".2.50.255";
+const String green = ".50.250.75";
 
 //inbound
 const char rfidflag = 'f';
