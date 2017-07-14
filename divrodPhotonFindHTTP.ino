@@ -442,12 +442,12 @@ void recvWithStartEndMarkers() {
 
 void applySerialReport(String serialcommand){
       if(serialcommand[0] == rfidflag){
+          //Got a scanned RFID tag! trim the command flag.
           serialcommand.remove(0,1);
-          String nextgallery = getStringFromUAPI(UTILITY_HOST, 80, "/artwork", "artid=" + serialcommand);
-        //Got a scanned RFID tag!
-      }
-      if(serialcommand[0] == statusflag){
-        return;
-        //status from arduino. this is either a low battery or a fault.
+          //Gotta figure out this workflow. Ideally this should refresh the goal, then do we want to make an additional call to grab a path to it, or all at once?
+          //TODO: handle the second (now first) character from the serialcommand, which should contain an indication of preference. y or n or something
+          char _pref = serialcommand.charAt(0);
+          serialcommand.remove(0,1);
+          String nextgallery = getStringFromUAPI(UTILITY_HOST, 80, "/artwork", "artid=" + serialcommand + "&pref=" + _pref);
       }
 }
