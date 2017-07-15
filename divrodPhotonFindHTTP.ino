@@ -25,6 +25,7 @@ class Goal{
 std::vector<Room> navSteps;
 Goal navGoal;
 int _steps = 0;
+int _navsteptime = 1500;
 
 unsigned int nextTime = 0;
 HttpClient http;
@@ -62,6 +63,13 @@ const char errorflag = 'e';
 const char print_flag = 'p';
 const char rgbflag = 'c';
 
+//rbg values to send over serial
+const String yellow = ".180.250.80";
+const String purple = ".25.2.255";
+const String red = ".255.5.50";
+const String cyan = ".2.50.255";
+const String green = ".50.250.75";
+
 //inbound
 const char rfidflag = 'f';
 const char statusflag = 'x';
@@ -79,11 +87,7 @@ void setup() {
     Serial.begin(9600);
     Serial1.begin(9600);
     myID = System.deviceID();
-    
-    Serial.println("Starting!");
     Particle.variable("loc_actual", actual_location);
-    //refreshPathJson(goal1,current_goal);
-    //refreshPathJson();
     refreshGoalJson("/artwork/default", "artid=0&pref=0");
     int_goal = navGoal.room.toInt();
 }
@@ -181,47 +185,41 @@ void updateNavigation(String _location){
     if(navSteps.empty()){
         instructCoController(waitflag, '0');
         refreshPathJson(_location, the_goal);
-        return;
+        //return;
     }
     int _stepindex = 99;
     bool _onTrack = false;
     bool _atEnd = false;
-    bool _atStart = false;
     //Path ONE: check if the gallery is in the current nav steps. if so:
     for(int i=0; i<navSteps.size(); i++){
         if(navSteps[i].name == _location){
             _stepindex = i;
             _onTrack = true;
-            if(_stepindex == 0){
-                _atStart = true;
-            }
-            if(_stepindex == (navSteps.size()-1)){
-                _atEnd = true;
-            }
+            if(_stepindex == (navSteps.size()-1)) _atEnd = true;
             break;
         }
     }
     if(_onTrack){
         if(_atEnd){
             //Reached the destination gallery, display tag color...
-            //instructCoController(rgbflag, '125.125.125');
-            refreshGoal();
-            String new_goal(int_goal);
-            refreshPathJson(_location, new_goal);
-            //Play success routine, then put arduino in color signal mode
-            //and wait for serial response from arduino.
-            //Upon arrival of RFID and pref data:
-                //Hit the pref engine to get a new goal
-                //refreshGoal(artID, pref);
-                //refreshPathJson(_location, current_goal);
+            String _sendcolor = cyan;
+            if(navGoal.color == "yellow") _sendcolor = yellow;
+            if(navGoal.color == "purple") _sendcolor = purple;
+            if(navGoal.color == "red") _sendcolor = red;
+            if(navGoal.color == "cyan") _sendcolor = cyan;
+            if(navGoal.color == "green") _sendcolor = green;
+            instructCoController(rgbflag, _sendcolor);
+            _navsteptime = 4000; //slow down nav loop since we're at the destination.
         }
         else{
             //Moving along the path, get the next step.
+            _navsteptime = 1500;
             int targetstep = _stepindex + 1;
             updateHeading(navSteps[_stepindex], navSteps[_stepindex + 1]);
         }
     }
     else{ //get a new path based on where the user has ended up
+        _navsteptime = 1500;
         instructCoController(waitflag, '0');
         refreshPathJson(_location, the_goal);
     }
@@ -355,15 +353,6 @@ void refreshGoalJson(String _path, String _query){
     }
 }
 
-void refreshGoal(){
-    int_goal = getStringFromUAPI(UTILITY_HOST, 80, "/path/next").toInt();
-    if(int_goal == 0){
-        instructCoController(print_flag, "Empty goal gallery...");
-        delay(1000);
-    }
-    return;
-}
-
 //Call our REST api to queue this device for config push.
 //Occurs when the onboarding RFID is scanned. Send unique ID and name.
 void queueSelfForOnboarding(){
@@ -435,7 +424,7 @@ void loop() {
 
     instructCoController(print_flag, output);
     wd.checkin();
-    nextTime = millis() + 1500;
+    nextTime = millis() + _navsteptime;
 }
 
 void recvWithStartEndMarkers() {
@@ -472,13 +461,42 @@ void recvWithStartEndMarkers() {
 
 void applySerialReport(String serialcommand){
       if(serialcommand[0] == rfidflag){
-          //Got a scanned RFID tag! trim the command flag.
           serialcommand.remove(0,1);
-          //Gotta figure out this workflow. Ideally this should refresh the goal, then do we want to make an additional call to grab a path to it, or all at once?
           //TODO: handle the second (now first) character from the serialcommand, which should contain an indication of preference. y or n or something
           char _pref = serialcommand.charAt(0);
           serialcommand.remove(0,1);
-          //String nextgallery = getStringFromUAPI(UTILITY_HOST, 80, "/artwork", "artid=" + serialcommand + "&pref=" + _pref);
-          refreshGoalJson("/artwork/test", "artid=" + serialcommand + "&pref=" + _pref);
+          instructCoController(successflag, 0);
+          bool scanned_target = sendScannedTag("/artwork", "artid=" + serialcommand + "&pref=" + _pref);
+          if(scanned_target){ //they scanned what we thought they might. time to give them a new path.
+            refreshGoalJson("/artwork/test", "artid=" + serialcommand + "&pref=" + _pref);
+            navSteps.clear();
+          }
       }
+}
+
+bool sendScannedTag(String _path, String _query){
+    StaticJsonBuffer<1500> jsonBuffer;
+    http_request_t this_request;
+    http_response_t this_response;
+    this_request.hostname = UTILITY_HOST;
+    this_request.port = 80;
+    this_request.path = _path + "?deviceid=" + myID + "&" + _query;
+    http.get(this_request, this_response, headers);
+    if(this_response.body.length() > 0){
+        char json[this_response.body.length()+1];
+        strcpy(json, this_response.body.c_str());
+        JsonObject& newgoal = jsonBuffer.parseObject((char*)json); 
+        if (newgoal.success()) {
+            if (!newgoal.containsKey("room"))
+            { //must have scanned a non-targeted piece
+                return false;
+            }
+            Goal new_goal;
+            new_goal.room = newgoal["room"];
+            new_goal.color = newgoal["color"];
+            navGoal = new_goal;
+            return true;
+        }
+    }
+    return false;
 }

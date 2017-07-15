@@ -2,6 +2,7 @@
     "files.associations": {
         "type_traits": "cpp",
         "utility": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "exception": "cpp"
     }
 }
