@@ -16,7 +16,14 @@ class Room{
         int pos[2] = {0,0};
 };
 
+class Goal{
+    public:
+        String room = "0";
+        String color = "blue";
+};
+
 std::vector<Room> navSteps;
+Goal navGoal;
 int _steps = 0;
 
 unsigned int nextTime = 0;
@@ -54,13 +61,6 @@ const char successflag = 's';
 const char errorflag = 'e';
 const char print_flag = 'p';
 const char rgbflag = 'c';
-
-//rbg values to send over serial
-const String yellow = ".180.250.80";
-const String purple = ".25.2.255";
-const String red = ".255.5.50";
-const String cyan = ".2.50.255";
-const String green = ".50.250.75";
 
 //inbound
 const char rfidflag = 'f';
@@ -227,6 +227,7 @@ void updateNavigation(String _location){
     }
     actual_location = _location;
 }
+
 /*
     Retrieve a new path from the server based on current location and goal.
     Parses JSON response into Vector of Rooms.
@@ -326,6 +327,34 @@ void refreshPathJson(){
     }
 }
     
+void refreshGoalJson(String _path, String _query){
+    StaticJsonBuffer<1000> jsonBuffer;
+    http_request_t this_request;
+    http_response_t this_response;
+    this_request.hostname = UTILITY_HOST;
+    this_request.port = 80;
+    this_request.path = _path + "?deviceid=" + myID + "&" + _query;
+    http.get(this_request, this_response, headers);
+    if(this_response.body.length() > 0){
+        char json[this_response.body.length()+1];
+        strcpy(json, this_response.body.c_str());
+        JsonObject& newgoal = jsonBuffer.parseObject((char*)json); 
+        if (newgoal.success()) {
+            if (!newgoal.containsKey("room"))
+            {
+                return;
+            }
+            Goal new_goal;
+            new_goal.room = newgoal["room"];
+            new_goal.color = newgoal["color"];
+            navGoal = new_goal;
+        }else{
+            instructCoController(print_flag, "Path JSON Parse Failed.");
+            delay(300);
+        }
+    }
+}
+
 void refreshGoal(){
     int_goal = getStringFromUAPI(UTILITY_HOST, 80, "/path/next").toInt();
     if(int_goal == 0){
@@ -449,6 +478,7 @@ void applySerialReport(String serialcommand){
           //TODO: handle the second (now first) character from the serialcommand, which should contain an indication of preference. y or n or something
           char _pref = serialcommand.charAt(0);
           serialcommand.remove(0,1);
-          String nextgallery = getStringFromUAPI(UTILITY_HOST, 80, "/artwork", "artid=" + serialcommand + "&pref=" + _pref);
+          //String nextgallery = getStringFromUAPI(UTILITY_HOST, 80, "/artwork", "artid=" + serialcommand + "&pref=" + _pref);
+          refreshGoalJson("/artwork/test", "artid=" + serialcommand + "&pref=" + _pref);
       }
 }
