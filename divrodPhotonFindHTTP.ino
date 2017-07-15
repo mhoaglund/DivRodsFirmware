@@ -452,7 +452,6 @@ void recvWithStartEndMarkers() {
                 newData = true;
             }
         }
-
         else if (rc == startMarker) {
             recvInProgress = true;
         }
@@ -467,8 +466,7 @@ void applySerialReport(String serialcommand){
           serialcommand.remove(0,1);
           instructCoController(successflag, 0);
           bool scanned_target = sendScannedTag("/artwork", "artid=" + serialcommand + "&pref=" + _pref);
-          if(scanned_target){ //they scanned what we thought they might. time to give them a new path.
-            refreshGoalJson("/artwork/test", "artid=" + serialcommand + "&pref=" + _pref);
+          if(scanned_target){ //they scanned what we thought they might. clear their path.
             navSteps.clear();
           }
       }

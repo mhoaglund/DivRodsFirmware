@@ -52,6 +52,7 @@ const char errorflag = 'e';
 const char printflag = 'p';
 const char rgbflag = 'c';
 char _mode = 'h';
+char _pref = 'n';
 
 int cueColor[] = {125,125,125};
 
@@ -61,6 +62,7 @@ long previousMillis = 0;
 byte heading_offset_index = 0;
 
 //TODO redo this so it isn't a global.
+//TODO write a wait wheel for the ring.
  byte LED_MAP[][12] = {
   {0,1,2,3,4,5,6,7,8,9,10,11},
   {11,0,1,2,3,4,5,6,7,8,9,10},
@@ -209,12 +211,14 @@ void loop() {
     }
         case 'r':{
           //user registering approval. go blue and scan for RFID
+          _pref = 'y';
           fullColorWipe(strip.Color(15, 25, computeChannel(2)));
           awaitRFIDscan();
           break;
         }
         case 'l':{
           //user registering disapproval. go yellow and scan for RFID
+          _pref = 'n';
           byte channel = computeChannel(2);
           fullColorWipe(strip.Color(channel, channel, 0));
           awaitRFIDscan();
@@ -264,6 +268,7 @@ void awaitRFIDscan(){
      blockdata = nfc.mifareclassic_ReadDataBlock(4, data);
      if(blockdata){
        Serial.print("<f");
+       Serial.print(_pref);
        //Artid's are 32-bit integers. Send it upstream to the photon.
        long read_artid;
 

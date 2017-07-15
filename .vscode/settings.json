@@ -3,6 +3,8 @@
         "type_traits": "cpp",
         "utility": "cpp",
         "xutility": "cpp",
-        "exception": "cpp"
+        "exception": "cpp",
+        "vector": "cpp",
+        "xstring": "cpp"
     }
 }
