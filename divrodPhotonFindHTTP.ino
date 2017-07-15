@@ -40,8 +40,8 @@ http_header_t headers[] = {
 };
 
 unsigned char nl = '\n';
-//String UTILITY_HOST = "node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.com";
-String UTILITY_HOST = "c3fc3d5f.ngrok.io";
+String UTILITY_HOST = "node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.com";
+//String UTILITY_HOST = "c3fc3d5f.ngrok.io";
 String GROUP = "mia2f";
 String USER = System.deviceID();
 String MODE = "/track";
@@ -84,8 +84,8 @@ void setup() {
     Particle.variable("loc_actual", actual_location);
     //refreshPathJson(goal1,current_goal);
     //refreshPathJson();
-    refreshGoal();
-    instructCoController(print_flag, "Hello from Photon!");
+    refreshGoalJson("/artwork/default", "artid=0&pref=0");
+    int_goal = navGoal.room.toInt();
 }
 
 String postLocationFromUAPI(String _host, int _port, String _path, String _body){
