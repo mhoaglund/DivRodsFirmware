@@ -24,15 +24,15 @@
 
 //Peripherals managed by this device include a BNO055 AOS, a neopixel ring, two buttons, and two haptic feedback motors.
 
-#define LEFTBTN 5
-#define RIGHTBTN 4
+#define LEFTBTN 9
+#define RIGHTBTN 8
 //Target is Arduino 328.
 #define RING_DATA_PIN 6
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, RING_DATA_PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
-
+uint8_t keyuniversal[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 #define OLED_RESET 10
 //Adafruit_SSD1306 display(OLED_RESET); //30% of memory right here!
 
@@ -109,6 +109,7 @@ byte _maxfeedbackloops = 4;
 byte _feedbackloops = 0;
 int _btninterval = 750;
 bool _hasPressed = false;
+bool _gottag = false;
 void loop() {
   unsigned long currentMillis = millis();
   recvWithStartEndMarkers();
@@ -213,7 +214,10 @@ void loop() {
           //user registering approval. go blue and scan for RFID
           _pref = 'y';
           fullColorWipe(strip.Color(15, 25, computeChannel(2)));
-          awaitRFIDscan();
+          if(!_gottag){
+            awaitRFIDscan();  
+          }
+          
           break;
         }
         case 'l':{
@@ -260,13 +264,14 @@ void awaitRFIDscan(){
   boolean success;
   uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };
   uint8_t uidLength;
+  uint8_t data[16];
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, &uid[0], &uidLength);
   
  if (success) {
-   auth = nfc.mifareclassic_AuthenticateBlock (uid, uidLength, 4, 1, keyuniversal);
-   if(auth){
-     blockdata = nfc.mifareclassic_ReadDataBlock(4, data);
-     if(blockdata){
+   success = nfc.mifareclassic_AuthenticateBlock (uid, uidLength, 4, 1, keyuniversal);
+   if(success){
+     success = nfc.mifareclassic_ReadDataBlock(4, data);
+     if(success){
        Serial.print("<f");
        Serial.print(_pref);
        //Artid's are 32-bit integers. Send it upstream to the photon.
