@@ -51,7 +51,9 @@ const char successflag = 's';
 const char errorflag = 'e';
 const char printflag = 'p';
 const char rgbflag = 'c';
+const char retrievalflag = 'g';
 char _mode = 'h';
+char _modecache = 'h';
 char _pref = 'n';
 
 int cueColor[] = {125,125,125};
@@ -60,8 +62,9 @@ boolean newData = false;
 String cmdcache = "";
 long previousMillis = 0;
 byte heading_offset_index = 0;
+long _most_recent_tag = 0;
+char _most_recent_pref = 'y';
 
-//TODO redo this so it isn't a global.
 //TODO write a wait wheel for the ring.
  byte LED_MAP[][12] = {
   {0,1,2,3,4,5,6,7,8,9,10,11},
@@ -88,7 +91,7 @@ void setup() {
     while(1);
   }
   nfc.begin();
-  nfc.setPassiveActivationRetries(0x01);
+  nfc.setPassiveActivationRetries(0x08);
   nfc.SAMConfig();
 
   bno.setExtCrystalUse(true);
@@ -109,7 +112,7 @@ byte _maxfeedbackloops = 4;
 byte _feedbackloops = 0;
 int _btninterval = 750;
 bool _hasPressed = false;
-bool _gottag = false;
+
 void loop() {
   unsigned long currentMillis = millis();
   recvWithStartEndMarkers();
@@ -141,7 +144,7 @@ void loop() {
         _rightheld = 0;
         _hasPressed = true;
       }
-    } 
+    }
   }
   
   if(currentMillis - previousMillis > 75){
@@ -158,8 +161,11 @@ void loop() {
     }
   }
 
+  //here we catch the loop and possibly revert it back to it's normal state-
+  //but the normal state can either be an RGB display or a heading display.
+  //hence _modecache.
   if(_feedbackloops > _maxfeedbackloops){
-    _mode = headingflag;
+    _mode = _modecache;
     _feedbackloops = 0;
     //if a command came in while we were showing feedback, enact it.
     applySerialCommand(cmdcache);
@@ -213,19 +219,14 @@ void loop() {
         case 'r':{
           //user registering approval. go blue and scan for RFID
           _pref = 'y';
-          fullColorWipe(strip.Color(15, 25, computeChannel(2)));
-          if(!_gottag){
-            awaitRFIDscan();  
-          }
-          
+          fullColorWipe(strip.Color(15, 25, buttonFeedbackLoop(2)));
           break;
         }
         case 'l':{
           //user registering disapproval. go yellow and scan for RFID
           _pref = 'n';
-          byte channel = computeChannel(2);
+          byte channel = buttonFeedbackLoop(2);
           fullColorWipe(strip.Color(channel, channel, 0));
-          awaitRFIDscan();
           break;
         }
         case 'c':{
@@ -266,7 +267,7 @@ void awaitRFIDscan(){
   uint8_t uidLength;
   uint8_t data[16];
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, &uid[0], &uidLength);
-  
+  _feedbackloops++;
  if (success) {
    success = nfc.mifareclassic_AuthenticateBlock (uid, uidLength, 4, 1, keyuniversal);
    if(success){
@@ -284,6 +285,9 @@ void awaitRFIDscan(){
 
        Serial.print(read_artid, DEC);
        Serial.print(">");
+       _most_recent_tag = read_artid;
+       _most_recent_pref = _pref;
+       _feedbackloops = _maxfeedbackloops + 1;
      }
    }
  delay(100);
@@ -291,12 +295,23 @@ void awaitRFIDscan(){
 }
 
 byte computeChannel(byte increment){
-  //user registering approval. go blue.
   if(fadedirection) fadecounter += increment;
   if(!fadedirection) fadecounter -= increment;
   if(fadecounter > fadeinterval){
     fadedirection = false;
     _feedbackloops++;
+  }
+  if(fadecounter < 1) fadedirection = true;
+  byte chan = map(fadecounter, 0, fadeinterval, 25, 255);
+  return chan;
+}
+
+byte buttonFeedbackLoop(byte increment){
+  if(fadedirection) fadecounter += increment;
+  if(!fadedirection) fadecounter -= increment;
+  if(fadecounter > fadeinterval){
+    fadedirection = false;
+    awaitRFIDscan();
   }
   if(fadecounter < 1) fadedirection = true;
   byte chan = map(fadecounter, 0, fadeinterval, 25, 255);
@@ -395,12 +410,14 @@ void applySerialCommand(String serialcommand){
       }
       if(serialcommand[0] == headingflag){
         _mode = headingflag;
+        _modecache = headingflag;
         _shouldFlash = true;
         serialcommand.remove(0,1);
         heading_offset_index = roundHeading(serialcommand.toInt());
       }
       else if(receivedChars[0] == rgbflag){
         _mode = rgbflag;
+        _modecache = rgbflag;
         _shouldFlash = true;
         char* rgbvals = strtok(receivedChars, ".");
         byte i = 0;
@@ -430,7 +447,15 @@ void applySerialCommand(String serialcommand){
 //        display.println(serialcommand);
 //        display.display();
       }
+      else if(receivedChars[0] == retrievalflag){
+        Serial.print("<f");
+        Serial.print(_most_recent_pref);
+        Serial.print(_most_recent_tag);
+        Serial.print(">");
+      }
       fadecounter = 0;
-  
 }
+
+
+
 
