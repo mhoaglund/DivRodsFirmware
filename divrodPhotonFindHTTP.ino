@@ -281,50 +281,6 @@ void refreshPathJson(String _location, String _destination){
     }
 }
 
-void refreshPathJson(){
-    StaticJsonBuffer<1500> jsonBuffer;
-    http_request_t this_request;
-    http_response_t this_response;
-    this_request.hostname = UTILITY_HOST;
-    this_request.port = 80;
-    this_request.path = "/path?deviceid=" + myID;
-    
-    http.get(this_request, this_response, headers);
-    
-    if(this_response.body.length() > 0){
-        char json[this_response.body.length()+1];
-        strcpy(json, this_response.body.c_str());
-        JsonObject& newpath = jsonBuffer.parseObject((char*)json);
-        if (newpath.success()) {
-            if (!newpath.containsKey("steps"))
-            {
-                //No steps enclosed? API must have returned nothing.
-                instructCoController(print_flag, "Pathfinding Call Returned Empty.");
-                return;
-            }else{
-                instructCoController(print_flag, "Got path.");
-                delay(500);
-            }
-            navSteps.clear();
-            int number_of_steps = newpath["steps"];
-            navSteps.reserve(number_of_steps);
-            JsonArray& _journeysteps = newpath["journey"].asArray();
-            for(int i = 0; i< number_of_steps; i++){
-                JsonObject& step = _journeysteps[i];
-                Room _room_for_step;
-                _room_for_step.name = step["room"].asString();
-                _room_for_step.pos[0] = step["coords"][0];
-                _room_for_step.pos[1] = step["coords"][1];
-                navSteps.push_back(_room_for_step);
-            }
-            String strnumb(number_of_steps);
-        }else{
-            instructCoController(print_flag, "Path JSON Parse Failed.");
-            delay(300);
-        }
-    }
-}
-    
 void refreshGoalJson(String _path, String _query){
     StaticJsonBuffer<1000> jsonBuffer;
     http_request_t this_request;
