@@ -24,15 +24,15 @@
 
 //Peripherals managed by this device include a BNO055 AOS, a neopixel ring, two buttons, and two haptic feedback motors.
 
-#define LEFTBTN 5
-#define RIGHTBTN 4
+#define LEFTBTN 9
+#define RIGHTBTN 8
 //Target is Arduino 328.
 #define RING_DATA_PIN 6
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, RING_DATA_PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
-
+uint8_t keyuniversal[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 #define OLED_RESET 10
 //Adafruit_SSD1306 display(OLED_RESET); //30% of memory right here!
 
@@ -51,7 +51,9 @@ const char successflag = 's';
 const char errorflag = 'e';
 const char printflag = 'p';
 const char rgbflag = 'c';
+const char retrievalflag = 'g';
 char _mode = 'h';
+char _modecache = 'h';
 char _pref = 'n';
 
 int cueColor[] = {125,125,125};
@@ -60,8 +62,9 @@ boolean newData = false;
 String cmdcache = "";
 long previousMillis = 0;
 byte heading_offset_index = 0;
+long _most_recent_tag = 0;
+char _most_recent_pref = 'y';
 
-//TODO redo this so it isn't a global.
 //TODO write a wait wheel for the ring.
  byte LED_MAP[][12] = {
   {0,1,2,3,4,5,6,7,8,9,10,11},
@@ -88,7 +91,7 @@ void setup() {
     while(1);
   }
   nfc.begin();
-  nfc.setPassiveActivationRetries(0x01);
+  nfc.setPassiveActivationRetries(0x08);
   nfc.SAMConfig();
 
   bno.setExtCrystalUse(true);
@@ -109,6 +112,7 @@ byte _maxfeedbackloops = 4;
 byte _feedbackloops = 0;
 int _btninterval = 750;
 bool _hasPressed = false;
+
 void loop() {
   unsigned long currentMillis = millis();
   recvWithStartEndMarkers();
@@ -140,7 +144,7 @@ void loop() {
         _rightheld = 0;
         _hasPressed = true;
       }
-    } 
+    }
   }
   
   if(currentMillis - previousMillis > 75){
@@ -157,8 +161,11 @@ void loop() {
     }
   }
 
+  //here we catch the loop and possibly revert it back to it's normal state-
+  //but the normal state can either be an RGB display or a heading display.
+  //hence _modecache.
   if(_feedbackloops > _maxfeedbackloops){
-    _mode = headingflag;
+    _mode = _modecache;
     _feedbackloops = 0;
     //if a command came in while we were showing feedback, enact it.
     applySerialCommand(cmdcache);
@@ -212,16 +219,14 @@ void loop() {
         case 'r':{
           //user registering approval. go blue and scan for RFID
           _pref = 'y';
-          fullColorWipe(strip.Color(15, 25, computeChannel(2)));
-          awaitRFIDscan();
+          fullColorWipe(strip.Color(15, 25, buttonFeedbackLoop(2)));
           break;
         }
         case 'l':{
           //user registering disapproval. go yellow and scan for RFID
           _pref = 'n';
-          byte channel = computeChannel(2);
+          byte channel = buttonFeedbackLoop(2);
           fullColorWipe(strip.Color(channel, channel, 0));
-          awaitRFIDscan();
           break;
         }
         case 'c':{
@@ -260,13 +265,14 @@ void awaitRFIDscan(){
   boolean success;
   uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };
   uint8_t uidLength;
+  uint8_t data[16];
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, &uid[0], &uidLength);
-  
+  _feedbackloops++;
  if (success) {
-   auth = nfc.mifareclassic_AuthenticateBlock (uid, uidLength, 4, 1, keyuniversal);
-   if(auth){
-     blockdata = nfc.mifareclassic_ReadDataBlock(4, data);
-     if(blockdata){
+   success = nfc.mifareclassic_AuthenticateBlock (uid, uidLength, 4, 1, keyuniversal);
+   if(success){
+     success = nfc.mifareclassic_ReadDataBlock(4, data);
+     if(success){
        Serial.print("<f");
        Serial.print(_pref);
        //Artid's are 32-bit integers. Send it upstream to the photon.
@@ -279,6 +285,9 @@ void awaitRFIDscan(){
 
        Serial.print(read_artid, DEC);
        Serial.print(">");
+       _most_recent_tag = read_artid;
+       _most_recent_pref = _pref;
+       _feedbackloops = _maxfeedbackloops + 1;
      }
    }
  delay(100);
@@ -286,12 +295,23 @@ void awaitRFIDscan(){
 }
 
 byte computeChannel(byte increment){
-  //user registering approval. go blue.
   if(fadedirection) fadecounter += increment;
   if(!fadedirection) fadecounter -= increment;
   if(fadecounter > fadeinterval){
     fadedirection = false;
     _feedbackloops++;
+  }
+  if(fadecounter < 1) fadedirection = true;
+  byte chan = map(fadecounter, 0, fadeinterval, 25, 255);
+  return chan;
+}
+
+byte buttonFeedbackLoop(byte increment){
+  if(fadedirection) fadecounter += increment;
+  if(!fadedirection) fadecounter -= increment;
+  if(fadecounter > fadeinterval){
+    fadedirection = false;
+    awaitRFIDscan();
   }
   if(fadecounter < 1) fadedirection = true;
   byte chan = map(fadecounter, 0, fadeinterval, 25, 255);
@@ -390,12 +410,14 @@ void applySerialCommand(String serialcommand){
       }
       if(serialcommand[0] == headingflag){
         _mode = headingflag;
+        _modecache = headingflag;
         _shouldFlash = true;
         serialcommand.remove(0,1);
         heading_offset_index = roundHeading(serialcommand.toInt());
       }
       else if(receivedChars[0] == rgbflag){
         _mode = rgbflag;
+        _modecache = rgbflag;
         _shouldFlash = true;
         char* rgbvals = strtok(receivedChars, ".");
         byte i = 0;
@@ -425,7 +447,15 @@ void applySerialCommand(String serialcommand){
 //        display.println(serialcommand);
 //        display.display();
       }
+      else if(receivedChars[0] == retrievalflag){
+        Serial.print("<f");
+        Serial.print(_most_recent_pref);
+        Serial.print(_most_recent_tag);
+        Serial.print(">");
+      }
       fadecounter = 0;
-  
 }
+
+
+
 

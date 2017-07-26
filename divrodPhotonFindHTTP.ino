@@ -19,7 +19,7 @@ class Room{
 class Goal{
     public:
         String room = "0";
-        String color = "blue";
+        String color = "cyan";
 };
 
 std::vector<Room> navSteps;
@@ -42,7 +42,7 @@ http_header_t headers[] = {
 
 unsigned char nl = '\n';
 String UTILITY_HOST = "node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.com";
-//String UTILITY_HOST = "c3fc3d5f.ngrok.io";
+//String UTILITY_HOST = "faf5d997.ngrok.io";
 String GROUP = "mia2f";
 String USER = System.deviceID();
 String MODE = "/track";
@@ -78,8 +78,6 @@ boolean newData = false;
 const byte numChars = 32;
 char receivedChars[numChars];
 
-String goal1 = "259";
-String goal2 = "276";
 int int_goal = 276;
 
 void setup() {
@@ -88,7 +86,8 @@ void setup() {
     Serial1.begin(9600);
     myID = System.deviceID();
     Particle.variable("loc_actual", actual_location);
-    refreshGoalJson("/artwork/default", "artid=0&pref=0");
+    //refreshGoalJson("/artwork/default", "artid=0&pref=0");
+    bool start_scan = sendScannedTag("/artwork", "artid=0&pref=n");
     int_goal = navGoal.room.toInt();
 }
 
@@ -178,7 +177,7 @@ void wd_exit(){
 //TODO: rework to use standard strings. Something's up with the String object, and its
 //not getting passed to our fucking functions.
 void updateNavigation(String _location){
-    String the_goal(int_goal);
+    String the_goal = navGoal.room;
     if(_location.length() != 3){
         return;
     }
@@ -209,7 +208,7 @@ void updateNavigation(String _location){
             if(navGoal.color == "cyan") _sendcolor = cyan;
             if(navGoal.color == "green") _sendcolor = green;
             instructCoController(rgbflag, _sendcolor);
-            _navsteptime = 4000; //slow down nav loop since we're at the destination.
+            _navsteptime = 15000; //slow down nav loop since we're at the destination.
         }
         else{
             //Moving along the path, get the next step.
@@ -302,9 +301,6 @@ void refreshGoalJson(String _path, String _query){
             new_goal.room = newgoal["room"];
             new_goal.color = newgoal["color"];
             navGoal = new_goal;
-        }else{
-            instructCoController(print_flag, "Path JSON Parse Failed.");
-            delay(300);
         }
     }
 }
@@ -320,11 +316,6 @@ void queueSelfForOnboarding(){
     onb_request.path = onb_request.path + myID;
     onb_request.path = onb_request.path + "&devicename=";
     http.put(onb_request, onb_response, headers);
-}
-
-//Just scanned a piece!
-void encounteredArtwork(char report[]){
-    return;
 }
 
 String gatherAPs(){
@@ -375,10 +366,7 @@ void loop() {
     }
     else{
         output = "No output.";
-        instructCoController(waitflag, 0);
     }
-
-    instructCoController(print_flag, output);
     wd.checkin();
     nextTime = millis() + _navsteptime;
 }
@@ -390,8 +378,8 @@ void recvWithStartEndMarkers() {
     char endMarker = '>';
     char rc;
  
-    while (Serial.available() > 0 && newData == false) {
-        rc = Serial.read();
+    while (Serial1.available() > 0 && newData == false) {
+        rc = Serial1.read();
 
         if (recvInProgress == true) {
             if (rc != endMarker) {
@@ -420,10 +408,11 @@ void applySerialReport(String serialcommand){
           //TODO: handle the second (now first) character from the serialcommand, which should contain an indication of preference. y or n or something
           char _pref = serialcommand.charAt(0);
           serialcommand.remove(0,1);
-          instructCoController(successflag, 0);
           bool scanned_target = sendScannedTag("/artwork", "artid=" + serialcommand + "&pref=" + _pref);
           if(scanned_target){ //they scanned what we thought they might. clear their path.
+            instructCoController(successflag, 0);
             navSteps.clear();
+            delay(500);
           }
       }
 }
