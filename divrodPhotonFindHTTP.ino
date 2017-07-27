@@ -43,7 +43,7 @@ http_header_t headers[] = {
 unsigned char nl = '\n';
 String UTILITY_HOST = "node-express-env.afdmv4mhpg.us-east-1.elasticbeanstalk.com";
 //String UTILITY_HOST = "faf5d997.ngrok.io";
-String GROUP = "mia2f";
+String GROUP = "mia3f";
 String USER = System.deviceID();
 String MODE = "/track";
 
@@ -405,7 +405,6 @@ void recvWithStartEndMarkers() {
 void applySerialReport(String serialcommand){
       if(serialcommand[0] == rfidflag){
           serialcommand.remove(0,1);
-          //TODO: handle the second (now first) character from the serialcommand, which should contain an indication of preference. y or n or something
           char _pref = serialcommand.charAt(0);
           serialcommand.remove(0,1);
           bool scanned_target = sendScannedTag("/artwork", "artid=" + serialcommand + "&pref=" + _pref);
