@@ -26,10 +26,10 @@
 
 #define LEFTBTN 9
 #define RIGHTBTN 8
-//Target is Arduino 328.
 #define RING_DATA_PIN 6
+#define PIXELS 16
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, RING_DATA_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIXELS, RING_DATA_PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 uint8_t keyuniversal[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
@@ -65,21 +65,7 @@ byte heading_offset_index = 0;
 long _most_recent_tag = 0;
 char _most_recent_pref = 'y';
 
-//TODO write a wait wheel for the ring.
- byte LED_MAP[][12] = {
-  {0,1,2,3,4,5,6,7,8,9,10,11},
-  {11,0,1,2,3,4,5,6,7,8,9,10},
-  {10,11,0,1,2,3,4,5,6,7,8,9},
-  {9,10,11,0,1,2,3,4,5,6,7,8},
-  {8,9,10,11,0,1,2,3,4,5,6,7},
-  {7,8,9,10,11,0,1,2,3,4,5,6},
-  {6,7,8,9,10,11,0,1,2,3,4,5},
-  {5,6,7,8,9,10,11,0,1,2,3,4},
-  {4,5,6,7,8,9,10,11,0,1,2,3},
-  {3,4,5,6,7,8,9,10,11,0,1,2},
-  {2,3,4,5,6,7,8,9,10,11,0,1},
-  {1,2,3,4,5,6,7,8,9,10,11,0}
- };
+byte brightness = 100;
 
 void setup() {
   Serial.begin(9600);
@@ -96,7 +82,7 @@ void setup() {
 
   bno.setExtCrystalUse(true);
   strip.begin();
-  strip.setBrightness(150); //adjust brightness here
+  strip.setBrightness(brightness); //adjust brightness here
   strip.show(); // Initialize all pixels to 'off'
 }
 
@@ -152,12 +138,12 @@ void loop() {
     sensors_event_t event; 
     bno.getEvent(&event);
     int headingint = (int)event.orientation.x;
-    targetled = mapheadingtoLED(headingint, LED_MAP[heading_offset_index]);
+    targetled = mapheadingtoLED(headingint, heading_offset_index);
     int attitude = (int)event.orientation.y;
     if(attitude > 35){
       strip.setBrightness(15);
     }else{
-      strip.setBrightness(125);
+      strip.setBrightness(brightness);
     }
   }
 
@@ -183,7 +169,7 @@ void loop() {
             fadedirection = true;
             _flashcount++;
           }
-          byte brightness = map(fadecounter, 0, fadeinterval, 150, 250);
+          byte brightness = map(fadecounter, 0, fadeinterval, brightness, 175);
           strip.setBrightness(brightness);
         }
          else{
@@ -192,8 +178,9 @@ void loop() {
           _shouldFlash = false;
          }
         }
-      strip.setPixelColor(targetled, strip.Color(255, 0, 255));
-      instantColorWipe(strip.Color(0, 125, 155), targetled);
+      //strip.setPixelColor(targetled, strip.Color(255, 0, 255));
+      //instantColorWipe(strip.Color(0, 125, 155), targetled);
+      displayDitheredHeading(200, targetled);
       break;
     }
     case 'w':{
@@ -318,37 +305,29 @@ byte buttonFeedbackLoop(byte increment){
   return chan;
 }
 
-byte mapheadingtoLED(int heading, byte indices[]){
-  byte led = 0;
-  if(heading >= 0 & heading < 30) led = indices[11];
-  if(heading >= 30 & heading < 60) led = indices[10];
-  if(heading >= 60 & heading < 90) led = indices[9];
-  if(heading >= 90 & heading < 120) led = indices[8];
-  if(heading >= 120 & heading < 150) led = indices[7];
-  if(heading >= 150 & heading < 180) led = indices[6];
-  if(heading >= 180 & heading < 210) led = indices[5];
-  if(heading >= 210 & heading < 240) led = indices[4];
-  if(heading >= 240 & heading < 270) led = indices[3];
-  if(heading >= 270 & heading < 300) led = indices[2];
-  if(heading >= 300 & heading < 330) led = indices[1];
-  if(heading >= 330 & heading < 360) led = indices[0];
-  return led;
+byte roundHeading(int heading){
+  int _heading = 360 - heading;
+  byte _slice = 360 / PIXELS;
+  byte index = _heading / _slice;
+  return index;
 }
 
-byte roundHeading(int heading){
+byte mapheadingtoLED(int heading, byte offset){
   byte led = 0;
-  if(heading >= 0 & heading < 30) led = 11;
-  if(heading >= 30 & heading < 60) led = 10;
-  if(heading >= 60 & heading < 90) led = 9;
-  if(heading >= 90 & heading < 120) led = 8;
-  if(heading >= 120 & heading < 150) led = 7;
-  if(heading >= 150 & heading < 180) led = 6;
-  if(heading >= 180 & heading < 210) led = 5;
-  if(heading >= 210 & heading < 240) led = 4;
-  if(heading >= 240 & heading < 270) led = 3;
-  if(heading >= 270 & heading < 300) led = 2;
-  if(heading >= 300 & heading < 330) led = 1;
-  if(heading >= 330 & heading < 360) led = 0;
+  int _heading = 360 - heading;
+  byte _slice = 360 / PIXELS;
+  byte index = _heading / _slice;
+  byte map[PIXELS];
+  byte _set = PIXELS - offset;
+  byte _start = (_set < PIXELS) ? _set : 0;
+  for(byte i = 0; i<PIXELS; i++){
+    map[i] = _start;
+    _start++;
+    if(_start > (PIXELS -1)){
+      _start = 0;
+    }
+  } 
+  led = map[index];
   return led;
 }
 
@@ -362,9 +341,32 @@ void instantColorWipe(uint32_t c, byte remnant){
   strip.show();
 }
 
+void displayDitheredHeading(byte intensity, byte remnant){
+  byte prev = 0;
+  byte next = 0;
+  if(remnant < PIXELS){
+    next = remnant + 1;
+  }
+  if(remnant > 0){
+    prev = remnant - 1;
+  }
+  for(byte i=0; i<PIXELS; i++) {
+      if(i == remnant){
+        strip.setPixelColor(i, strip.Color(intensity, intensity, intensity)); 
+        continue; 
+      }
+      if(i == prev | i == next){
+        strip.setPixelColor(i, strip.Color(intensity/2,intensity/2,intensity/2));
+        continue;
+      }
+      strip.setPixelColor(i, strip.Color(0,0,0));
+  }
+  strip.show();
+}
+
 //Set color of all but passed in pixel
 void fullColorWipe(uint32_t c){
-  for(uint16_t i=0; i<strip.numPixels(); i++) {
+  for(uint16_t i=0; i<PIXELS; i++) {
       strip.setPixelColor(i, c);  
   }
   strip.show();
@@ -389,7 +391,7 @@ void recvWithStartEndMarkers() {
                 }
             }
             else {
-                receivedChars[ndx] = '\0'; // terminate the string
+                receivedChars[ndx] = '\0';
                 recvInProgress = false;
                 ndx = 0;
                 newData = true;
@@ -440,13 +442,6 @@ void applySerialCommand(String serialcommand){
       else if(receivedChars[0] == errorflag){
         _mode = errorflag;
       }
-      else if(receivedChars[0] == printflag){
-//        display.clearDisplay();
-//        display.setCursor(0,0);
-//        serialcommand.remove(0,1);
-//        display.println(serialcommand);
-//        display.display();
-      }
       else if(receivedChars[0] == retrievalflag){
         Serial.print("<f");
         Serial.print(_most_recent_pref);
@@ -455,7 +450,3 @@ void applySerialCommand(String serialcommand){
       }
       fadecounter = 0;
 }
-
-
-
-
