@@ -33,8 +33,6 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIXELS, RING_DATA_PIN, NEO_GRB + NEO
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 uint8_t keyuniversal[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-#define OLED_RESET 10
-//Adafruit_SSD1306 display(OLED_RESET); //30% of memory right here!
 
 const byte numChars = 32;
 char receivedChars[numChars];
@@ -73,14 +71,18 @@ void setup() {
   pinMode(RIGHTBTN, INPUT);
   if(!bno.begin())
   {
-    Serial.print("<xfault>");
+    Serial.print("<xfaultbno>");
     while(1);
   }
-  nfc.begin();
-  nfc.setPassiveActivationRetries(0x08);
-  nfc.SAMConfig();
-
   bno.setExtCrystalUse(true);
+  nfc.begin();
+  uint32_t versiondata = nfc.getFirmwareVersion();
+  if (! versiondata) {
+    Serial.println("<xfaultnfc>");
+    while (1); // halt
+  }
+  nfc.setPassiveActivationRetries(0x01);
+  nfc.SAMConfig();
   strip.begin();
   strip.setBrightness(brightness); //adjust brightness here
   strip.show(); // Initialize all pixels to 'off'
@@ -98,6 +100,8 @@ byte _maxfeedbackloops = 4;
 byte _feedbackloops = 0;
 int _btninterval = 750;
 bool _hasPressed = false;
+int base_brtns = brightness;
+int brtns_mod = 0;
 
 void loop() {
   unsigned long currentMillis = millis();
@@ -139,12 +143,12 @@ void loop() {
     bno.getEvent(&event);
     int headingint = (int)event.orientation.x;
     targetled = mapheadingtoLED(headingint, heading_offset_index);
+    //Adjust brightness based on angle device is held.
     int attitude = (int)event.orientation.y;
-    if(attitude > 35){
-      strip.setBrightness(15);
-    }else{
-      strip.setBrightness(brightness);
+    if(attitude > 80 | attitude < -80){
+      attitude = 80;
     }
+    base_brtns = map(abs(attitude), 0, 80, brightness, 1);
   }
 
   //here we catch the loop and possibly revert it back to it's normal state-
@@ -169,18 +173,15 @@ void loop() {
             fadedirection = true;
             _flashcount++;
           }
-          byte brightness = map(fadecounter, 0, fadeinterval, brightness, 175);
-          strip.setBrightness(brightness);
+          brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
         }
          else{
-          strip.setBrightness(150);
+          brtns_mod = 0;
           _flashcount = 0;
           _shouldFlash = false;
          }
         }
-      //strip.setPixelColor(targetled, strip.Color(255, 0, 255));
-      //instantColorWipe(strip.Color(0, 125, 155), targetled);
-      displayDitheredHeading(200, targetled);
+      displayDitheredHeading(brightness, targetled);
       break;
     }
     case 'w':{
@@ -227,11 +228,10 @@ void loop() {
                 fadedirection = true;
                 _flashcount++;
               }
-              int brightness = map(fadecounter, 0, fadeinterval, 150, 250);
-              strip.setBrightness(brightness);
+              brtns_mod = map(fadecounter, 0, fadeinterval, 0, 50);
             }
             else{
-              strip.setBrightness(150);
+              brtns_mod = 0;
               _flashcount = 0;
               _shouldFlash = false;
             }
@@ -246,6 +246,8 @@ void loop() {
     default: 
     break;
   }
+  int computed_brtns = base_brtns + brtns_mod;
+  strip.setBrightness(computed_brtns);
 }
 
 void awaitRFIDscan(){
@@ -313,8 +315,9 @@ byte roundHeading(int heading){
 }
 
 byte mapheadingtoLED(int heading, byte offset){
+  if(heading > 351) heading = 0;
   byte led = 0;
-  int _heading = 360 - heading;
+  int _heading = heading; //355
   byte _slice = 360 / PIXELS;
   byte index = _heading / _slice;
   byte map[PIXELS];
@@ -344,11 +347,15 @@ void instantColorWipe(uint32_t c, byte remnant){
 void displayDitheredHeading(byte intensity, byte remnant){
   byte prev = 0;
   byte next = 0;
-  if(remnant < PIXELS){
+  byte pindex = PIXELS-1;
+  if(remnant < pindex){
     next = remnant + 1;
   }
   if(remnant > 0){
     prev = remnant - 1;
+  }
+  if(remnant == 0){
+    prev = pindex;
   }
   for(byte i=0; i<PIXELS; i++) {
       if(i == remnant){
@@ -356,7 +363,7 @@ void displayDitheredHeading(byte intensity, byte remnant){
         continue; 
       }
       if(i == prev | i == next){
-        strip.setPixelColor(i, strip.Color(intensity/2,intensity/2,intensity/2));
+        strip.setPixelColor(i, strip.Color(intensity/3,intensity/2,intensity));
         continue;
       }
       strip.setPixelColor(i, strip.Color(0,0,0));
