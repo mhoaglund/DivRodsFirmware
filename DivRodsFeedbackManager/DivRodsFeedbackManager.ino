@@ -184,27 +184,31 @@ void loop() {
       displayDitheredHeading(brightness, targetled);
       break;
     }
+    //Waiting for a call. Slow white flash.
     case 'w':{
       brtns_mod = constantPulse(1);
-      fullColorWipe(strip.Color(125, 125, 125));
+      halfColorWipe(strip.Color(125, 125, 125));
       break;
     }
+    //Got the right tag. Fast flash as a reward.
     case 's':{
       brtns_mod = constantPulse(5);
       fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       break;
     }
+    //Polling for a tag. Color goes steady when we get a good scan.
     case 'c':{
       if(!_got_tag){
         brtns_mod = map(rfidscanPulse(1), 0, fadeinterval, 0, 50);
+        halfColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       }else{
         brtns_mod = 75;
+        fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       }
-      fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       break;
     }
     case 'e':{ //error state
-      fullColorWipe(strip.Color(computeChannel(2), 50, 25));
+      halfColorWipe(strip.Color(computeChannel(2), 50, 25));
       break;
     }
     default: 
@@ -276,24 +280,6 @@ byte alternatingPulse(uint32_t c, byte rate){
   return 0;
 }
 
-//Adafruit example below.
-void theaterChase(uint32_t c, uint8_t wait) {
-  for (int j=0; j<10; j++) {  //do 10 cycles of chasing
-    for (int q=0; q < 3; q++) {
-      for (int i=0; i < strip.numPixels(); i=i+3) {
-        strip.setPixelColor(i+q, c);    //turn every third pixel on
-      }
-      strip.show();
-
-      delay(wait);
-
-      for (int i=0; i < strip.numPixels(); i=i+3) {
-        strip.setPixelColor(i+q, 0);        //turn every third pixel off
-      }
-    }
-  }
-}
-
 byte rfidscanPulse(byte rate){
   if(fadedirection) fadecounter += 1;
     if(!fadedirection) fadecounter -= 1;
@@ -347,16 +333,6 @@ byte mapheadingtoLED(int heading, byte offset){
   return led;
 }
 
-//Set color of all but passed in pixel
-void instantColorWipe(uint32_t c, byte remnant){
-  for(byte i=0; i<strip.numPixels(); i++) {
-      if(i != remnant){
-        strip.setPixelColor(i, c);  
-      }
-  }
-  strip.show();
-}
-
 void displayDitheredHeading(byte intensity, byte remnant){
   byte prev = 0;
   byte next = 0;
@@ -387,6 +363,16 @@ void displayDitheredHeading(byte intensity, byte remnant){
 //Set color of all but passed in pixel
 void fullColorWipe(uint32_t c){
   for(uint16_t i=0; i<PIXELS; i++) {
+      strip.setPixelColor(i, c);  
+  }
+  strip.show();
+}
+
+void halfColorWipe(uint32_t c){
+  for(uint16_t i=0; i<PIXELS; i++) {
+      strip.setPixelColor(i, strip.Color(0,0,0));  
+  }
+  for(uint16_t i=0; i<PIXELS; i+2) {
       strip.setPixelColor(i, c);  
   }
   strip.show();
@@ -467,5 +453,6 @@ void applySerialCommand(String serialcommand){
       }
       fadecounter = 0;
 }
+
 
 
