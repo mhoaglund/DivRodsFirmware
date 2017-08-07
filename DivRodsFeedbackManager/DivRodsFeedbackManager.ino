@@ -143,8 +143,7 @@ void loop() {
     previousMillis = currentMillis;
     sensors_event_t event; 
     bno.getEvent(&event);
-    int headingint = (int)event.orientation.x;
-    targetled = mapheadingtoLED(headingint, heading_offset_index);
+    targetled = mapheadingtoLED((int)event.orientation.x, heading_offset_index);
     //Adjust brightness based on angle device is held.
     int attitude = (int)event.orientation.y;
     if(attitude > 80 | attitude < -80){
@@ -186,39 +185,18 @@ void loop() {
       break;
     }
     case 'w':{
-      if(fadedirection) fadecounter++;
-      if(!fadedirection) fadecounter--;
-      if(fadecounter > fadeinterval) fadedirection = false;
-      if(fadecounter < 1) fadedirection = true;
-      byte rchan = map(fadecounter, 0, fadeinterval, 2, 145);
-      byte bchan = map(fadecounter, 0, fadeinterval, 255, 25);
-      fullColorWipe(strip.Color(rchan, bchan, 125));
+      brtns_mod = constantPulse(1);
+      fullColorWipe(strip.Color(125, 125, 125));
       break;
     }
     case 's':{
-      if(fadedirection) fadecounter += 5;
-      if(!fadedirection) fadecounter -= 5;
-      if(fadecounter > fadeinterval) fadedirection = false;
-      if(fadecounter < 1) fadedirection = true;
-      byte gchan = map(fadecounter, 0, fadeinterval, 25, 255);
-      byte bchan = map(fadecounter, 0, fadeinterval, 255, 25);
-      fullColorWipe(strip.Color(0, gchan, bchan));
+      brtns_mod = constantPulse(5);
+      fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       break;
     }
     case 'c':{
-      //displaying a cue color to direct user to scan a matching tag.
       if(!_got_tag){
-        if(fadedirection) fadecounter += 1;
-        if(!fadedirection) fadecounter -= 1;
-        if(fadecounter > fadeinterval){
-          fadedirection = false;
-          awaitRFIDscan();
-        } 
-        if(fadecounter < 1) {
-          fadedirection = true;
-          awaitRFIDscan();
-        }
-        brtns_mod = map(fadecounter, 0, fadeinterval, 0, 50);
+        brtns_mod = map(rfidscanPulse(1), 0, fadeinterval, 0, 50);
       }else{
         brtns_mod = 75;
       }
@@ -272,6 +250,62 @@ byte computeChannel(byte increment){
   if(fadecounter < 1) fadedirection = true;
   byte chan = map(fadecounter, 0, fadeinterval, 25, 255);
   return chan;
+}
+
+byte constantPulse(byte rate){
+  if(fadedirection) fadecounter += rate;
+  if(!fadedirection) fadecounter -= rate;
+  if(fadecounter > fadeinterval) fadedirection = false;
+  if(fadecounter < 1) fadedirection = true;
+  return fadecounter;
+}
+
+//TODO fade every other LED up and down
+byte alternatingPulse(uint32_t c, byte rate){
+  if(fadedirection) fadecounter += rate;
+  if(!fadedirection) fadecounter -= rate;
+  if(fadecounter > fadeinterval) fadedirection = false;
+  if(fadecounter < 1) fadedirection = true;
+  if(fadedirection){
+    for (int q=0; q < 3; q++) {
+      for (int i=0; i < PIXELS; i=i+3) {
+        strip.setPixelColor(i+q, c);    //turn every third pixel on
+      }
+    }
+  }
+  return 0;
+}
+
+//Adafruit example below.
+void theaterChase(uint32_t c, uint8_t wait) {
+  for (int j=0; j<10; j++) {  //do 10 cycles of chasing
+    for (int q=0; q < 3; q++) {
+      for (int i=0; i < strip.numPixels(); i=i+3) {
+        strip.setPixelColor(i+q, c);    //turn every third pixel on
+      }
+      strip.show();
+
+      delay(wait);
+
+      for (int i=0; i < strip.numPixels(); i=i+3) {
+        strip.setPixelColor(i+q, 0);        //turn every third pixel off
+      }
+    }
+  }
+}
+
+byte rfidscanPulse(byte rate){
+  if(fadedirection) fadecounter += 1;
+    if(!fadedirection) fadecounter -= 1;
+    if(fadecounter > fadeinterval){
+      fadedirection = false;
+      awaitRFIDscan();
+    } 
+    if(fadecounter < 1) {
+      fadedirection = true;
+      awaitRFIDscan();
+    }
+    return fadecounter;
 }
 
 byte buttonFeedbackLoop(byte increment){
