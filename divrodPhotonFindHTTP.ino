@@ -62,6 +62,7 @@ const char successflag = 's';
 const char errorflag = 'e';
 const char print_flag = 'p';
 const char rgbflag = 'c';
+const char sleepflag = 'z';
 
 //rbg values to send over serial
 const String yellow = ".180.250.80";
@@ -78,17 +79,18 @@ boolean newData = false;
 const byte numChars = 32;
 char receivedChars[numChars];
 
-int int_goal = 276;
+int CHGPIN = D3;
+bool isAsleep = false;
+bool hasSession = false;
 
 void setup() {
     Time.zone(-6); //US central
+    pinMode(CHGPIN, INPUT);  
     Serial.begin(9600);
     Serial1.begin(9600);
     myID = System.deviceID();
     Particle.variable("loc_actual", actual_location);
-    //refreshGoalJson("/artwork/default", "artid=0&pref=0");
     bool start_scan = sendScannedTag("/artwork", "artid=0&pref=n");
-    int_goal = navGoal.room.toInt();
 }
 
 String postLocationFromUAPI(String _host, int _port, String _path, String _body){
@@ -99,20 +101,6 @@ String postLocationFromUAPI(String _host, int _port, String _path, String _body)
     this_request.path = _path + "?deviceid=" + myID;
     this_request.body = _body;
     http.post(this_request, this_response, headers);
-
-    if(this_response.body.length() > 0){
-        return this_response.body;
-        } else return "";
-}
-
-String getStringFromUAPI(String _host, int _port, String _path){
-    http_request_t this_request;
-    http_response_t this_response;
-    this_request.hostname = _host;
-    this_request.port = _port;
-    this_request.path = _path + "?deviceid=" + myID + "&location=" + actual_location;
-    //get deviceid in here
-    http.get(this_request, this_response, headers);
 
     if(this_response.body.length() > 0){
         return this_response.body;
@@ -341,7 +329,28 @@ String gatherAPs(){
     return _out;
 }
 
+bool cycleSession(bool dir){
+    String _host = UTILITY_HOST + "/"
+    String resp = getStringFromUAPI();
+}
+
 void loop() {
+    while(digitalRead(CHGPIN) == HIGH) {
+        if(hasSession){
+            //TODO send session closure
+            hasSession = false;
+        }
+        instructCoController(sleepflag, 0);
+        isAsleep = true;
+        System.sleep(3);  
+        return;
+    }
+
+    if(isAsleep){
+        isAsleep = false;
+        instructCoController(waitflag, 0);
+    }
+
     recvWithStartEndMarkers();
     if (newData == true) {
         newData = false;
