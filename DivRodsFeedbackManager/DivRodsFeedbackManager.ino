@@ -63,7 +63,7 @@ long current_tag = 0;
 
 byte targetled = 0;
 long fadecounter = 0;
-long fadeinterval = 1500;
+long fadeinterval = 3500;
 bool fadedirection = true;
 bool _shouldFlash = false;
 int _flashcount = 0;
@@ -115,7 +115,7 @@ void loop() {
   if(_got_tag){
       int left_state = digitalRead(LEFTBTN);
       int right_state = digitalRead(RIGHTBTN);
-      if(left_state == LOW){
+      if(left_state == HIGH){
         _rightheld = 0;
         _leftheld++;
         if(_leftheld > _btninterval){
@@ -126,7 +126,7 @@ void loop() {
           _got_tag = false;
         }
       }
-      if(right_state == LOW){
+      if(right_state == HIGH){
         _leftheld = 0;
         _rightheld++;
         if(_rightheld > _btninterval){
@@ -186,20 +186,23 @@ void loop() {
     }
     //Waiting for a call. Slow white flash.
     case 'w':{
-      brtns_mod = constantPulse(1);
+      constantPulse(2);
+      brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
       halfColorWipe(strip.Color(125, 125, 125));
       break;
     }
     //Got the right tag. Fast flash as a reward.
     case 's':{
-      brtns_mod = constantPulse(5);
+      constantPulse(4);
+      brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
       fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       break;
     }
     //Polling for a tag. Color goes steady when we get a good scan.
     case 'c':{
       if(!_got_tag){
-        brtns_mod = map(rfidscanPulse(1), 0, fadeinterval, 0, 50);
+        constantPulse(2);
+        brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
         halfColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       }else{
         brtns_mod = 75;
@@ -215,6 +218,7 @@ void loop() {
     break;
   }
   int computed_brtns = base_brtns + brtns_mod;
+  if(computed_brtns < 10) computed_brtns = 10;
   strip.setBrightness(computed_brtns);
 }
 
@@ -255,13 +259,12 @@ byte computeChannel(byte increment){
   byte chan = map(fadecounter, 0, fadeinterval, 25, 255);
   return chan;
 }
-
-byte constantPulse(byte rate){
+  
+void constantPulse(byte rate){
   if(fadedirection) fadecounter += rate;
   if(!fadedirection) fadecounter -= rate;
   if(fadecounter > fadeinterval) fadedirection = false;
   if(fadecounter < 1) fadedirection = true;
-  return fadecounter;
 }
 
 //TODO fade every other LED up and down
@@ -281,8 +284,8 @@ byte alternatingPulse(uint32_t c, byte rate){
 }
 
 byte rfidscanPulse(byte rate){
-  if(fadedirection) fadecounter += 1;
-    if(!fadedirection) fadecounter -= 1;
+  if(fadedirection) fadecounter += rate;
+    if(!fadedirection) fadecounter -= rate;
     if(fadecounter > fadeinterval){
       fadedirection = false;
       awaitRFIDscan();
@@ -372,8 +375,8 @@ void halfColorWipe(uint32_t c){
   for(uint16_t i=0; i<PIXELS; i++) {
       strip.setPixelColor(i, strip.Color(0,0,0));  
   }
-  for(uint16_t i=0; i<PIXELS; i+2) {
-      strip.setPixelColor(i, c);  
+  for(uint16_t j=0; j<PIXELS; j=j+2) {
+      strip.setPixelColor(j, c);  
   }
   strip.show();
 }

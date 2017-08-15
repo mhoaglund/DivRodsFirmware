@@ -65,7 +65,7 @@ const char rgbflag = 'c';
 const char sleepflag = 'z';
 
 //rbg values to send over serial
-const String yellow = ".180.250.80";
+const String yellow = ".180.180.20";
 const String purple = ".25.2.255";
 const String red = ".255.5.50";
 const String cyan = ".2.50.255";
