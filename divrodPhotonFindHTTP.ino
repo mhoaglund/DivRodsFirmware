@@ -135,6 +135,7 @@ void instructCoController(char command, int payload){
     Serial1.print('>');
 }
 
+//TODO: reverse one of the diff calculations because the BNO has been flipped.
 int calculateHeading(int from[2], int to[2]){
     int diff_y = to[1] - from[1];
     int diff_x = from[0] - to[0];

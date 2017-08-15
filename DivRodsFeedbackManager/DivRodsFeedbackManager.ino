@@ -24,8 +24,8 @@
 
 //Peripherals managed by this device include a BNO055 AOS, a neopixel ring, two buttons, and two haptic feedback motors.
 
-#define LEFTBTN 9
-#define RIGHTBTN 8
+#define LEFTBTN 11
+#define RIGHTBTN 12
 #define RING_DATA_PIN 6
 #define PIXELS 16
 
@@ -70,15 +70,15 @@ int _flashcount = 0;
 int _leftheld = 0;
 int _rightheld = 0;
 byte _feedbackloops = 0;
-int _btninterval = 750;
+int _btninterval = 5;
 byte brightness = 100;
 int base_brtns = brightness;
 int brtns_mod = 0;
 
 void setup() {
   Serial.begin(9600);
-  pinMode(LEFTBTN, INPUT);
-  pinMode(RIGHTBTN, INPUT);
+  pinMode(LEFTBTN, INPUT_PULLUP);
+  pinMode(RIGHTBTN, INPUT_PULLUP);
   if(!bno.begin())
   {
     Serial.print("<xfaultbno>");
@@ -109,13 +109,15 @@ void loop() {
 
   if(_mode == sleepflag){
     strip.setBrightness(0);
+    halfColorWipe(strip.Color(0, 0, 0));
+    strip.show();
     return;
   }
 
   if(_got_tag){
       int left_state = digitalRead(LEFTBTN);
       int right_state = digitalRead(RIGHTBTN);
-      if(left_state == HIGH){
+      if(left_state == LOW){
         _rightheld = 0;
         _leftheld++;
         if(_leftheld > _btninterval){
@@ -126,7 +128,7 @@ void loop() {
           _got_tag = false;
         }
       }
-      if(right_state == HIGH){
+      if(right_state == LOW){
         _leftheld = 0;
         _rightheld++;
         if(_rightheld > _btninterval){
@@ -186,14 +188,14 @@ void loop() {
     }
     //Waiting for a call. Slow white flash.
     case 'w':{
-      constantPulse(2);
+      constantPulse(3);
       brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
-      halfColorWipe(strip.Color(125, 125, 125));
+      halfColorWipe(strip.Color(90, 150, 150));
       break;
     }
     //Got the right tag. Fast flash as a reward.
     case 's':{
-      constantPulse(4);
+      constantPulse(8);
       brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
       fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       break;
@@ -201,7 +203,7 @@ void loop() {
     //Polling for a tag. Color goes steady when we get a good scan.
     case 'c':{
       if(!_got_tag){
-        constantPulse(2);
+        rfidscanPulse(4);
         brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
         halfColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       }else{
@@ -211,7 +213,9 @@ void loop() {
       break;
     }
     case 'e':{ //error state
-      halfColorWipe(strip.Color(computeChannel(2), 50, 25));
+      constantPulse(2);
+      brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
+      halfColorWipe(strip.Color(200, 25, 50));
       break;
     }
     default: 
@@ -248,18 +252,6 @@ void awaitRFIDscan(){
   }
 }
 
-byte computeChannel(byte increment){
-  if(fadedirection) fadecounter += increment;
-  if(!fadedirection) fadecounter -= increment;
-  if(fadecounter > fadeinterval){
-    fadedirection = false;
-    _feedbackloops++;
-  }
-  if(fadecounter < 1) fadedirection = true;
-  byte chan = map(fadecounter, 0, fadeinterval, 25, 255);
-  return chan;
-}
-  
 void constantPulse(byte rate){
   if(fadedirection) fadecounter += rate;
   if(!fadedirection) fadecounter -= rate;
@@ -283,7 +275,7 @@ byte alternatingPulse(uint32_t c, byte rate){
   return 0;
 }
 
-byte rfidscanPulse(byte rate){
+void rfidscanPulse(byte rate){
   if(fadedirection) fadecounter += rate;
     if(!fadedirection) fadecounter -= rate;
     if(fadecounter > fadeinterval){
@@ -294,7 +286,6 @@ byte rfidscanPulse(byte rate){
       fadedirection = true;
       awaitRFIDscan();
     }
-    return fadecounter;
 }
 
 byte buttonFeedbackLoop(byte increment){
@@ -351,11 +342,11 @@ void displayDitheredHeading(byte intensity, byte remnant){
   }
   for(byte i=0; i<PIXELS; i++) {
       if(i == remnant){
-        strip.setPixelColor(i, strip.Color(intensity, intensity, intensity)); 
+        strip.setPixelColor(i, strip.Color(intensity-10, intensity+30, intensity+30)); 
         continue; 
       }
       if(i == prev | i == next){
-        strip.setPixelColor(i, strip.Color(intensity/3,intensity/2,intensity));
+        strip.setPixelColor(i, strip.Color(intensity/4,intensity/2,intensity+10));
         continue;
       }
       strip.setPixelColor(i, strip.Color(0,0,0));
@@ -456,6 +447,3 @@ void applySerialCommand(String serialcommand){
       }
       fadecounter = 0;
 }
-
-
-
