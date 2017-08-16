@@ -90,6 +90,8 @@ void setup() {
     Serial1.begin(9600);
     myID = System.deviceID();
     Particle.variable("loc_actual", actual_location);
+    cycleSession();
+    hasSession = true;
     bool start_scan = sendScannedTag("/artwork", "artid=0&pref=n");
 }
 
@@ -331,8 +333,7 @@ String gatherAPs(){
 }
 
 bool cycleSession(){
-    //String _host = UTILITY_HOST + "/";
-    //String resp = getStringFromUAPI();
+    String resp = getStringFromUAPI(UTILITY_HOST, 80, "/devices/cycle", "");
     return true;
 }
 
@@ -340,7 +341,7 @@ void loop() {
     while(digitalRead(CHGPIN) == HIGH) {
         if(hasSession){
             //TODO send session closure
-            //cycleSession();
+            cycleSession();
             hasSession = false;
         }
         instructCoController(sleepflag, 0);
