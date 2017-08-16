@@ -137,7 +137,7 @@ void instructCoController(char command, int payload){
 
 //TODO: reverse one of the diff calculations because the BNO has been flipped.
 int calculateHeading(int from[2], int to[2]){
-    int diff_y = to[1] - from[1];
+    int diff_y = from[1] - to[1];
     int diff_x = from[0] - to[0];
     float rad_angle = atan2(diff_y, diff_x);
     int deg_angle = rad_angle * (180 / M_PI);
@@ -170,7 +170,7 @@ void updateNavigation(String _location){
     if(_location.length() != 3){
         return;
     }
-    if(navSteps.empty()){
+    if(navSteps.size() < 1){
         instructCoController(waitflag, '0');
         refreshPathJson(_location, the_goal);
         //return;
@@ -330,15 +330,17 @@ String gatherAPs(){
     return _out;
 }
 
-bool cycleSession(bool dir){
-    String _host = UTILITY_HOST + "/"
-    String resp = getStringFromUAPI();
+bool cycleSession(){
+    //String _host = UTILITY_HOST + "/";
+    //String resp = getStringFromUAPI();
+    return true;
 }
 
 void loop() {
     while(digitalRead(CHGPIN) == HIGH) {
         if(hasSession){
             //TODO send session closure
+            //cycleSession();
             hasSession = false;
         }
         instructCoController(sleepflag, 0);
