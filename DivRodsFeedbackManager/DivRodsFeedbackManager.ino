@@ -188,9 +188,8 @@ void loop() {
     }
     //Waiting for a call. Slow white flash.
     case 'w':{
-      constantPulse(3);
+      spinner(3);
       brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
-      halfColorWipe(strip.Color(90, 150, 150));
       break;
     }
     //Got the right tag. Fast flash as a reward.
@@ -259,20 +258,30 @@ void constantPulse(byte rate){
   if(fadecounter < 1) fadedirection = true;
 }
 
-//TODO fade every other LED up and down
-byte alternatingPulse(uint32_t c, byte rate){
+void spinner(byte rate){
   if(fadedirection) fadecounter += rate;
   if(!fadedirection) fadecounter -= rate;
   if(fadecounter > fadeinterval) fadedirection = false;
   if(fadecounter < 1) fadedirection = true;
-  if(fadedirection){
-    for (int q=0; q < 3; q++) {
-      for (int i=0; i < PIXELS; i=i+3) {
-        strip.setPixelColor(i+q, c);    //turn every third pixel on
-      }
-    }
+  byte led = map(fadecounter, 0, fadeinterval, 0, 15);
+  byte opp = 0;
+  if(led > 7){
+    opp = (led + 8) - 15;
+  }else{
+    opp = led + 8;
   }
-  return 0;
+  for(byte i=0; i<PIXELS; i++) {
+      if(i == led){
+        strip.setPixelColor(i, strip.Color(90, 150, 150)); 
+        continue; 
+      }
+      if(i == opp){
+        strip.setPixelColor(i, strip.Color(90, 150, 150));
+        continue;
+      }
+      strip.setPixelColor(i, strip.Color(0,0,0));
+  }
+  strip.show();
 }
 
 void rfidscanPulse(byte rate){
@@ -447,3 +456,4 @@ void applySerialCommand(String serialcommand){
       }
       fadecounter = 0;
 }
+
