@@ -352,6 +352,7 @@ void loop() {
 
     if(isAsleep){
         isAsleep = false;
+        Spark.connect();
         instructCoController(waitflag, 0);
     }
 
@@ -361,7 +362,7 @@ void loop() {
         String temp(receivedChars);
         applySerialReport(temp);
     }
-    if (nextTime > millis()) {
+    if (nextTime > millis() | !WiFi.ready()) {
         return;
     }
     String output = "";
