@@ -50,6 +50,8 @@ const char printflag = 'p';
 const char rgbflag = 'c';
 const char retrievalflag = 'g';
 const char sleepflag = 'z';
+const char rainbowflag = 'r';
+const char sparkleflag = 'k';
 char _mode = 'h';
 char _modecache = 'h';
 
@@ -175,7 +177,7 @@ void loop() {
             fadedirection = true;
             _flashcount++;
           }
-          brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
+          brtns_mod = map(fadecounter, 0, fadeinterval, -15, 75);
         }
          else{
           brtns_mod = 0;
@@ -188,14 +190,14 @@ void loop() {
     }
     //Waiting for a call. Slow white flash.
     case 'w':{
-      spinner(3);
-      brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
+      constantPulse(4);
+      brtns_mod = map(fadecounter, 0, fadeinterval, -35, 75);
       break;
     }
     //Got the right tag. Fast flash as a reward.
     case 's':{
       constantPulse(8);
-      brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
+      brtns_mod = map(fadecounter, 0, fadeinterval, -35, 75);
       fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       break;
     }
@@ -203,7 +205,7 @@ void loop() {
     case 'c':{
       if(!_got_tag){
         rfidscanPulse(4);
-        brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
+        brtns_mod = map(fadecounter, 0, fadeinterval, -35, 75);
         halfColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       }else{
         brtns_mod = 75;
@@ -213,9 +215,23 @@ void loop() {
     }
     case 'e':{ //error state
       constantPulse(2);
-      brtns_mod = map(fadecounter, 0, fadeinterval, 0, 75);
+      brtns_mod = map(fadecounter, 0, fadeinterval, -35, 75);
       halfColorWipe(strip.Color(200, 25, 50));
       break;
+    }
+    case 'r':{ //rainbow state
+      if(!_got_tag){
+        rfidscanPulse(4);
+        brtns_mod = map(fadecounter, 0, fadeinterval, -35, 75);
+        halfColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
+      }else{
+        brtns_mod = 75;
+        fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
+      }
+    }
+    case 'k':{ //idle sparkle state that happens every now and then on the kiosk
+      constantPulse(4);
+      brtns_mod = map(fadecounter, 0, fadeinterval, -35, 75);
     }
     default: 
     break;
@@ -453,6 +469,12 @@ void applySerialCommand(String serialcommand){
       }
       else if(receivedChars[0] == sleepflag){
         _mode = sleepflag;
+      }
+      else if(receivedChars[0] == rainbowflag){
+        _mode = rainbowflag;
+      }
+      else if(receivedChars[0] == sparkleflag){
+        _mode = sparkleflag;
       }
       fadecounter = 0;
 }
