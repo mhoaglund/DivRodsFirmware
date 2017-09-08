@@ -220,13 +220,13 @@ void loop() {
       break;
     }
     case 'r':{ //rainbow state
+      constantPulse(2);
       if(!_got_tag){
-        rfidscanPulse(4);
         brtns_mod = map(fadecounter, 0, fadeinterval, -35, 75);
-        halfColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
+        halfColorWipe(Wheel(fadecounter));
       }else{
         brtns_mod = 75;
-        fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
+        fullColorWipe(Wheel(fadecounter));
       }
     }
     case 'k':{ //idle sparkle state that happens every now and then on the kiosk
@@ -311,6 +311,20 @@ void rfidscanPulse(byte rate){
       fadedirection = true;
       awaitRFIDscan();
     }
+}
+
+uint32_t Wheel(long WheelPos) {
+  WheelPos = fadeinterval - WheelPos; //unsure why this is necessary
+  byte computed = map(WheelPos, 0, fadeinterval, 255, 0);
+  if(computed < 85) {
+    return strip.Color(255 - computed * 3, 0, computed * 3);
+  }
+  if(computed < 170) {
+    computed -= 85;
+    return strip.Color(0, computed * 3, 255 - computed * 3);
+  }
+  computed -= 170;
+  return strip.Color(computed * 3, 255 - computed * 3, 0);
 }
 
 byte buttonFeedbackLoop(byte increment){
