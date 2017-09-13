@@ -1,7 +1,5 @@
 // This #include statement was automatically added by the Particle IDE.
 #include <SparkJson.h>
-
-// This #include statement was automatically added by the Particle IDE.
 #define _USE_MATH_DEFINES
 #include <cmath>
 
@@ -26,6 +24,10 @@ std::vector<Room> navSteps;
 Goal navGoal;
 int _steps = 0;
 int _navsteptime = 1500;
+int _fallbackTime = 400;
+int _idleSparkleTime = 1000; //every now and then light up a bit for a minute on the kiosk
+Timer fallbacktimer(_fallbackTime, toggleFreeMode;
+Timer sparkletimer(_idleSparkleTime, sparkle);
 
 unsigned int nextTime = 0;
 HttpClient http;
@@ -63,6 +65,8 @@ const char errorflag = 'e';
 const char print_flag = 'p';
 const char rgbflag = 'c';
 const char sleepflag = 'z';
+const char rainbowflag = 'r';
+const char sparkleflag = 'k';
 
 //rbg values to send over serial
 const String yellow = ".180.180.20";
@@ -81,6 +85,7 @@ char receivedChars[numChars];
 
 int CHGPIN = D3;
 bool isAsleep = false;
+bool isInFreeMode = false;
 bool hasSession = false;
 
 void setup() {
@@ -93,6 +98,7 @@ void setup() {
     cycleSession();
     hasSession = true;
     bool start_scan = sendScannedTag("/artwork", "artid=0&pref=n");
+    fallbacktimer.start();
 }
 
 String postLocationFromUAPI(String _host, int _port, String _path, String _body){
@@ -180,38 +186,44 @@ void updateNavigation(String _location){
     int _stepindex = 99;
     bool _onTrack = false;
     bool _atEnd = false;
-    //Path ONE: check if the gallery is in the current nav steps. if so:
-    for(int i=0; i<navSteps.size(); i++){
-        if(navSteps[i].name == _location){
-            _stepindex = i;
-            _onTrack = true;
-            if(_stepindex == (navSteps.size()-1)) _atEnd = true;
-            break;
+    if(isInFreeMode){
+        //momentarily deviating from pathfinding to give the user a simpler task.
+        instructCoController(rainbowflag, 0);
+        _navsteptime = 20000;
+    } else{
+        //check if the gallery is in the current nav steps. if so:
+        for(int i=0; i<navSteps.size(); i++){
+            if(navSteps[i].name == _location){
+                _stepindex = i;
+                _onTrack = true;
+                if(_stepindex == (navSteps.size()-1)) _atEnd = true;
+                break;
+            }
         }
-    }
-    if(_onTrack){
-        if(_atEnd){
-            //Reached the destination gallery, display tag color...
-            String _sendcolor = cyan;
-            if(navGoal.color == "yellow") _sendcolor = yellow;
-            if(navGoal.color == "purple") _sendcolor = purple;
-            if(navGoal.color == "red") _sendcolor = red;
-            if(navGoal.color == "cyan") _sendcolor = cyan;
-            if(navGoal.color == "green") _sendcolor = green;
-            instructCoController(rgbflag, _sendcolor);
-            _navsteptime = 15000; //slow down nav loop since we're at the destination.
+        if(_onTrack){
+            if(_atEnd){
+                //Reached the destination gallery, display tag color...
+                String _sendcolor = cyan;
+                if(navGoal.color == "yellow") _sendcolor = yellow;
+                if(navGoal.color == "purple") _sendcolor = purple;
+                if(navGoal.color == "red") _sendcolor = red;
+                if(navGoal.color == "cyan") _sendcolor = cyan;
+                if(navGoal.color == "green") _sendcolor = green;
+                instructCoController(rgbflag, _sendcolor);
+                _navsteptime = 20000; //slow down nav loop since we're at the destination.
+            }
+            else{
+                //Moving along the path, get the next step.
+                _navsteptime = 1500;
+                int targetstep = _stepindex + 1;
+                updateHeading(navSteps[_stepindex], navSteps[_stepindex + 1]);
+            }
         }
-        else{
-            //Moving along the path, get the next step.
+        else{ //get a new path based on where the user has ended up
             _navsteptime = 1500;
-            int targetstep = _stepindex + 1;
-            updateHeading(navSteps[_stepindex], navSteps[_stepindex + 1]);
+            instructCoController(waitflag, '0');
+            refreshPathJson(_location, the_goal);
         }
-    }
-    else{ //get a new path based on where the user has ended up
-        _navsteptime = 1500;
-        instructCoController(waitflag, '0');
-        refreshPathJson(_location, the_goal);
     }
     actual_location = _location;
 }
@@ -271,44 +283,6 @@ void refreshPathJson(String _location, String _destination){
     }
 }
 
-void refreshGoalJson(String _path, String _query){
-    StaticJsonBuffer<1000> jsonBuffer;
-    http_request_t this_request;
-    http_response_t this_response;
-    this_request.hostname = UTILITY_HOST;
-    this_request.port = 80;
-    this_request.path = _path + "?deviceid=" + myID + "&" + _query;
-    http.get(this_request, this_response, headers);
-    if(this_response.body.length() > 0){
-        char json[this_response.body.length()+1];
-        strcpy(json, this_response.body.c_str());
-        JsonObject& newgoal = jsonBuffer.parseObject((char*)json); 
-        if (newgoal.success()) {
-            if (!newgoal.containsKey("room"))
-            {
-                return;
-            }
-            Goal new_goal;
-            new_goal.room = newgoal["room"];
-            new_goal.color = newgoal["color"];
-            navGoal = new_goal;
-        }
-    }
-}
-
-//Call our REST api to queue this device for config push.
-//Occurs when the onboarding RFID is scanned. Send unique ID and name.
-void queueSelfForOnboarding(){
-    http_request_t onb_request;
-    http_response_t onb_response;
-    onb_request.hostname = UTILITY_HOST;
-    onb_request.port = 80;
-    onb_request.path = "/onboard?deviceid=";
-    onb_request.path = onb_request.path + myID;
-    onb_request.path = onb_request.path + "&devicename=";
-    http.put(onb_request, onb_response, headers);
-}
-
 String gatherAPs(){
     String _out = "";
     WiFiAccessPoint aps[45];
@@ -344,6 +318,8 @@ void loop() {
             cycleSession();
             hasSession = false;
         }
+        sparkletimer.start();
+        fallbacktimer.stop();
         instructCoController(sleepflag, 0);
         isAsleep = true;
         System.sleep(3);  
@@ -352,7 +328,10 @@ void loop() {
 
     if(isAsleep){
         isAsleep = false;
+        Spark.connect();
         instructCoController(waitflag, 0);
+        fallbacktimer.start();
+        sparkletimer.stop();
     }
 
     recvWithStartEndMarkers();
@@ -361,7 +340,7 @@ void loop() {
         String temp(receivedChars);
         applySerialReport(temp);
     }
-    if (nextTime > millis()) {
+    if (nextTime > millis() | !WiFi.ready()) {
         return;
     }
     String output = "";
@@ -415,6 +394,7 @@ void recvWithStartEndMarkers() {
     }
 }
 
+//TODO integrate override
 void applySerialReport(String serialcommand){
       if(serialcommand[0] == rfidflag){
           serialcommand.remove(0,1);
@@ -430,13 +410,15 @@ void applySerialReport(String serialcommand){
 }
 
 bool sendScannedTag(String _path, String _query){
+    String oride = (isInFreeMode) ? "&oride=1" : "&oride=0";
     StaticJsonBuffer<1500> jsonBuffer;
     http_request_t this_request;
     http_response_t this_response;
     this_request.hostname = UTILITY_HOST;
     this_request.port = 80;
-    this_request.path = _path + "?deviceid=" + myID + "&" + _query;
+    this_request.path = _path + "?deviceid=" + myID + "&" + _query + oride;
     http.get(this_request, this_response, headers);
+    isInFreeMode = false;
     if(this_response.body.length() > 0){
         char json[this_response.body.length()+1];
         strcpy(json, this_response.body.c_str());
@@ -454,4 +436,16 @@ bool sendScannedTag(String _path, String _query){
         }
     }
     return false;
+}
+
+//If a user has spent a good deal of time without scanning our intended tag, we need to go into a fallback state.
+//Play a rainbow fade, scan anything.
+void toggleFreeMode(){
+    if(isInFreeMode) isInFreeMode = false;
+    else isInFreeMode = true;
+}
+
+void sparkle(){
+    instructCoController(sparkleflag, 0);
+    System.sleep(3);
 }
