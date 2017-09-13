@@ -1,4 +1,3 @@
-
 #include <Adafruit_SSD1306.h>
 
 // This #include statement was automatically added by the Particle IDE.
@@ -80,9 +79,6 @@ void loop() {
 
     http.post(request, response, headers);
     Serial.println(response.body);
-    if(response.success == false){
-        //red lights? or no feedback?
-    }
     
     nextTime = millis() + 2000; // sends response every 5 seconds  (2 sec delay + ~3 sec for gathering signals)
 }
