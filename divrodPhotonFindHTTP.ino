@@ -24,14 +24,14 @@ std::vector<Room> navSteps;
 Goal navGoal;
 int _steps = 0;
 int _navsteptime = 1500;
-int _fallbackTime = 300;
+int _fallbackTime = 360;
 Timer fallbacktimer(_fallbackTime, toggleFreeMode;
 
 unsigned int nextTime = 0;
 HttpClient http;
 STARTUP(WiFi.selectAntenna(ANT_EXTERNAL)); 
 
-ApplicationWatchdog wd(15000, wd_exit);
+ApplicationWatchdog wd(30000, wd_exit);
 
 // Headers currently need to be set at init, useful for API keys etc.
 http_header_t headers[] = {
@@ -64,7 +64,6 @@ const char print_flag = 'p';
 const char rgbflag = 'c';
 const char sleepflag = 'z';
 const char rainbowflag = 'r';
-const char sparkleflag = 'k';
 
 //rbg values to send over serial
 const String yellow = ".180.180.20";
@@ -164,7 +163,7 @@ void updateHeading(Room current, Room next){
 
 void wd_exit(){
     instructCoController(errorflag, 0);
-    instructCoController(print_flag, "Photon Error...");
+    //instructCoController(print_flag, "Photon Error...");
     System.reset();
 }
 
@@ -187,7 +186,7 @@ void updateNavigation(String _location){
     if(isInFreeMode){
         //momentarily deviating from pathfinding to give the user a simpler task.
         instructCoController(rainbowflag, 0);
-        _navsteptime = 20000;
+        _navsteptime = 30000;
     } else{
         //check if the gallery is in the current nav steps. if so:
         for(int i=0; i<navSteps.size(); i++){
@@ -201,6 +200,8 @@ void updateNavigation(String _location){
         if(_onTrack){
             if(_atEnd){
                 //Reached the destination gallery, display tag color...
+                fallbacktimer.stop();
+                fallbacktimer.reset();
                 String _sendcolor = cyan;
                 if(navGoal.color == "yellow") _sendcolor = yellow;
                 if(navGoal.color == "purple") _sendcolor = purple;
@@ -208,7 +209,7 @@ void updateNavigation(String _location){
                 if(navGoal.color == "cyan") _sendcolor = cyan;
                 if(navGoal.color == "green") _sendcolor = green;
                 instructCoController(rgbflag, _sendcolor);
-                _navsteptime = 20000; //slow down nav loop since we're at the destination.
+                _navsteptime = 30000; //slow down nav loop since we're at the destination.
             }
             else{
                 //Moving along the path, get the next step.
@@ -415,6 +416,7 @@ bool sendScannedTag(String _path, String _query){
     this_request.path = _path + "?deviceid=" + myID + "&" + _query + oride;
     http.get(this_request, this_response, headers);
     isInFreeMode = false;
+    fallbacktimer.start();
     if(this_response.body.length() > 0){
         char json[this_response.body.length()+1];
         strcpy(json, this_response.body.c_str());
@@ -439,9 +441,4 @@ bool sendScannedTag(String _path, String _query){
 void toggleFreeMode(){
     if(isInFreeMode) isInFreeMode = false;
     else isInFreeMode = true;
-}
-
-void sparkle(){
-    instructCoController(sparkleflag, 0);
-    System.sleep(3);
 }

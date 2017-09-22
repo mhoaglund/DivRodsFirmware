@@ -244,10 +244,6 @@ void loop() {
       }
       break;
     }
-    case 'k':{ //idle sparkle state that happens every now and then on the kiosk
-      constantPulse(4);
-      brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
-    }
     default: 
     break;
   }
@@ -296,32 +292,6 @@ void constantPulse(byte rate){
   if(fadecounter < 1) fadedirection = true;
 }
 
-void spinner(byte rate){
-  if(fadedirection) fadecounter += rate;
-  if(!fadedirection) fadecounter -= rate;
-  if(fadecounter > fadeinterval) fadedirection = false;
-  if(fadecounter < 1) fadedirection = true;
-  byte led = map(fadecounter, 0, fadeinterval, 0, 15);
-  byte opp = 0;
-  if(led > 7){
-    opp = (led + 8) - 15;
-  }else{
-    opp = led + 8;
-  }
-  for(byte i=0; i<PIXELS; i++) {
-      if(i == led){
-        strip.setPixelColor(i, strip.Color(90, 150, 150)); 
-        continue; 
-      }
-      if(i == opp){
-        strip.setPixelColor(i, strip.Color(90, 150, 150));
-        continue;
-      }
-      strip.setPixelColor(i, strip.Color(0,0,0));
-  }
-  strip.show();
-}
-
 void rfidscanPulse(byte rate){
   if(fadedirection) fadecounter += rate;
     if(!fadedirection) fadecounter -= rate;
@@ -347,18 +317,6 @@ uint32_t Wheel(long WheelPos) {
   }
   computed -= 170;
   return strip.Color(computed * 3, 255 - computed * 3, 0);
-}
-
-byte buttonFeedbackLoop(byte increment){
-  if(fadedirection) fadecounter += increment;
-  if(!fadedirection) fadecounter -= increment;
-  if(fadecounter > fadeinterval){
-    fadedirection = false;
-    awaitRFIDscan();
-  }
-  if(fadecounter < 1) fadedirection = true;
-  byte chan = map(fadecounter, 0, fadeinterval, 25, 255);
-  return chan;
 }
 
 byte roundHeading(int heading){
@@ -508,9 +466,6 @@ void applySerialCommand(String serialcommand){
       }
       else if(receivedChars[0] == rainbowflag){
         _mode = rainbowflag;
-      }
-      else if(receivedChars[0] == sparkleflag){
-        _mode = sparkleflag;
       }
       fadecounter = 0;
 }
