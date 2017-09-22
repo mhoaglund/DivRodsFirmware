@@ -24,10 +24,8 @@ std::vector<Room> navSteps;
 Goal navGoal;
 int _steps = 0;
 int _navsteptime = 1500;
-int _fallbackTime = 400;
-int _idleSparkleTime = 1000; //every now and then light up a bit for a minute on the kiosk
+int _fallbackTime = 300;
 Timer fallbacktimer(_fallbackTime, toggleFreeMode;
-Timer sparkletimer(_idleSparkleTime, sparkle);
 
 unsigned int nextTime = 0;
 HttpClient http;
@@ -318,7 +316,6 @@ void loop() {
             cycleSession();
             hasSession = false;
         }
-        sparkletimer.start();
         fallbacktimer.stop();
         instructCoController(sleepflag, 0);
         isAsleep = true;
@@ -331,7 +328,6 @@ void loop() {
         Spark.connect();
         instructCoController(waitflag, 0);
         fallbacktimer.start();
-        sparkletimer.stop();
     }
 
     recvWithStartEndMarkers();
