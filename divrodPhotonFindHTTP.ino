@@ -156,7 +156,6 @@ void updateHeading(Room current, Room next){
     int heading = calculateHeading(current.pos, next.pos);
     String headinginfo = "H " + String(heading) + " from " + current.name + " to " + next.name;
     instructCoController(headingflag, heading);
-    delay(1500);
 }
 
 void wd_exit(){
