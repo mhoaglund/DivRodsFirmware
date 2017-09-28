@@ -203,14 +203,14 @@ void loop() {
     }
     //Waiting for a call. Slow white flash.
     case 'w':{
-      constantPulse(4);
+      constantPulse(8);
       brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
       halfColorWipe(strip.Color(125, 125, 150));
       break;
     }
     //Got the right tag. Fast flash as a reward.
     case 's':{
-      constantPulse(8);
+      constantPulse(12);
       brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
       fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       break;
@@ -228,7 +228,7 @@ void loop() {
       break;
     }
     case 'e':{ //error state
-      constantPulse(2);
+      constantPulse(4);
       brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
       halfColorWipe(strip.Color(200, 25, 50));
       break;

@@ -402,6 +402,7 @@ void applySerialReport(String serialcommand){
             instructCoController(successflag, 0);
             navSteps.clear();
             _navsteptime = 1500;
+            nextTime = millis() + _navsteptime; //kick the loop
           }
       }
 }
