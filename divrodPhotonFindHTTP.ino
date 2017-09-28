@@ -60,7 +60,6 @@ const char headingflag = 'h';
 const char waitflag = 'w';
 const char successflag = 's';
 const char errorflag = 'e';
-const char print_flag = 'p';
 const char rgbflag = 'c';
 const char sleepflag = 'z';
 const char rainbowflag = 'r';
@@ -156,14 +155,12 @@ int calculateHeading(int from[2], int to[2]){
 void updateHeading(Room current, Room next){
     int heading = calculateHeading(current.pos, next.pos);
     String headinginfo = "H " + String(heading) + " from " + current.name + " to " + next.name;
-    instructCoController(print_flag, headinginfo);
     instructCoController(headingflag, heading);
     delay(1500);
 }
 
 void wd_exit(){
     instructCoController(errorflag, 0);
-    //instructCoController(print_flag, "Photon Error...");
     System.reset();
 }
 
@@ -220,7 +217,6 @@ void updateNavigation(String _location){
         }
         else{ //get a new path based on where the user has ended up
             _navsteptime = 1500;
-            instructCoController(waitflag, '0');
             refreshPathJson(_location, the_goal);
         }
     }
@@ -233,8 +229,6 @@ void updateNavigation(String _location){
 */
 void refreshPathJson(String _location, String _destination){
     String _locs = "Path points: " + _location + ", " + _destination;
-    instructCoController(print_flag, _locs);
-    delay(800);
     String qs = "&start=" + _location + "&end=" + _destination;
     StaticJsonBuffer<1500> jsonBuffer;
     http_request_t this_request;
@@ -253,11 +247,7 @@ void refreshPathJson(String _location, String _destination){
             if (!newpath.containsKey("steps"))
             {
                 //No steps enclosed? API must have returned nothing.
-                instructCoController(print_flag, "Pathfinding Call Returned Empty.");
                 return;
-            }else{
-                instructCoController(print_flag, "Got path.");
-                delay(500);
             }
             navSteps.clear();
             String _roomnames = "";
@@ -273,11 +263,6 @@ void refreshPathJson(String _location, String _destination){
                 _room_for_step.pos[1] = step["coords"][1];
                 navSteps.push_back(_room_for_step);
             }
-            instructCoController(print_flag, _roomnames);
-            delay(800);
-        }else{
-            instructCoController(print_flag, "Path JSON Parse Failed.");
-            delay(300);
         }
     }
 }
@@ -402,7 +387,7 @@ void applySerialReport(String serialcommand){
             instructCoController(successflag, 0);
             navSteps.clear();
             _navsteptime = 1500;
-            nextTime = millis() + _navsteptime; //kick the loop
+            nextTime = millis() + _navsteptime; //kick the loop so success doesn't run too long
           }
       }
 }
