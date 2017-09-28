@@ -25,7 +25,7 @@ Goal navGoal;
 int _steps = 0;
 int _navsteptime = 1500;
 int _fallbackTime = 360;
-Timer fallbacktimer(_fallbackTime, toggleFreeMode;
+Timer fallbacktimer(_fallbackTime, toggleFreeMode);
 
 unsigned int nextTime = 0;
 HttpClient http;
@@ -66,7 +66,7 @@ const char sleepflag = 'z';
 const char rainbowflag = 'r';
 
 //rbg values to send over serial
-const String yellow = ".180.180.20";
+const String yellow = ".210.180.20"; //more like orange
 const String purple = ".25.2.255";
 const String red = ".255.5.50";
 const String cyan = ".2.50.255";
@@ -398,10 +398,10 @@ void applySerialReport(String serialcommand){
           char _pref = serialcommand.charAt(0);
           serialcommand.remove(0,1);
           bool scanned_target = sendScannedTag("/artwork", "artid=" + serialcommand + "&pref=" + _pref);
-          if(scanned_target){ //they scanned what we thought they might. clear their path.
+          if(scanned_target){ //they scanned what we thought they might. clear their path and reset nav loop time.
             instructCoController(successflag, 0);
             navSteps.clear();
-            delay(500);
+            _navsteptime = 1500;
           }
       }
 }
