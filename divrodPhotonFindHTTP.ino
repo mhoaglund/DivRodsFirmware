@@ -2,6 +2,7 @@
 #include <SparkJson.h>
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <algorithm>
 
 #include "application.h"
 #undef swap
@@ -21,10 +22,13 @@ class Goal{
 };
 
 std::vector<Room> navSteps;
+std::vector<String> recentLocations;
+
 Goal navGoal;
 int _steps = 0;
 int _navsteptime = 1500;
-int _fallbackTime = 360;
+int _fallbackTime = 250000;
+int _navbounces = 0;
 Timer fallbacktimer(_fallbackTime, toggleFreeMode);
 
 unsigned int nextTime = 0;
@@ -65,7 +69,7 @@ const char sleepflag = 'z';
 const char rainbowflag = 'r';
 
 //rbg values to send over serial
-const String yellow = ".210.180.20"; //more like orange
+const String yellow = ".210.210.20"; //more like orange
 const String purple = ".25.2.255";
 const String red = ".255.5.50";
 const String cyan = ".2.50.255";
@@ -219,7 +223,36 @@ void updateNavigation(String _location){
             refreshPathJson(_location, the_goal);
         }
     }
-    actual_location = _location;
+    if(actual_location != _location){
+        actual_location = _location;
+        debounceLocation(_location);
+    }
+}
+
+/*
+    Common failure mode of nav is to keep giving the user opposite, contradictory directions.
+    We try to catch that and go into wildcard mode here.
+*/
+void debounceLocation(String _location){
+    //If we made it here, we have a location the user newly arrived in.
+    if (std::find(recentLocations.begin(), recentLocations.end(), _location) != recentLocations.end())
+    {
+      //If they newly arrived, but it's one of the last two galleries they've been in, they are confused. Confusion++.
+      _navbounces++;
+      if(_navbounces > 3){
+          if(!isInFreeMode){
+            _navbounces = 0;
+            toggleFreeMode();
+          }
+      }
+    } else{
+        _navbounces = 0;
+        recentLocations.push_back(_location);
+        //Keep length to 2
+        if(recentLocations.size() > 2){
+            recentLocations.erase(recentLocations.begin());
+        }
+    }
 }
 
 /*

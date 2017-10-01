@@ -5,6 +5,7 @@
         "xutility": "cpp",
         "exception": "cpp",
         "vector": "cpp",
-        "xstring": "cpp"
+        "xstring": "cpp",
+        "initializer_list": "cpp"
     }
 }
