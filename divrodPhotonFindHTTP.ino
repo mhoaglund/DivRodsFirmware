@@ -69,7 +69,7 @@ const char sleepflag = 'z';
 const char rainbowflag = 'r';
 
 //rbg values to send over serial
-const String yellow = ".210.210.20"; //more like orange
+const String orange = ".210.210.20"; //more like orange
 const String purple = ".25.2.255";
 const String red = ".255.5.50";
 const String cyan = ".2.50.255";
@@ -203,7 +203,7 @@ void updateNavigation(String _location){
                 fallbacktimer.stop();
                 fallbacktimer.reset();
                 String _sendcolor = cyan;
-                if(navGoal.color == "yellow") _sendcolor = yellow;
+                if(navGoal.color == "orange") _sendcolor = orange;
                 if(navGoal.color == "purple") _sendcolor = purple;
                 if(navGoal.color == "red") _sendcolor = red;
                 if(navGoal.color == "cyan") _sendcolor = cyan;
