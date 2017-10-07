@@ -28,8 +28,10 @@ Goal navGoal;
 int _steps = 0;
 int _navsteptime = 1500;
 int _fallbackTime = 250000;
+int _recoveryTime = 20000;
 int _navbounces = 0;
 Timer fallbacktimer(_fallbackTime, toggleFreeMode);
+Timer recoverytimer(_recoveryTime, toggleFreeMode);
 
 unsigned int nextTime = 0;
 HttpClient http;
@@ -141,6 +143,12 @@ void instructCoController(char command, int payload){
     Serial1.print(command);
     Serial1.print(payload);
     Serial1.print('>');
+    if(command == waitflag){
+        recoverytimer.start();
+    }
+    else{
+        recoverytimer.stop();
+    }
 }
 
 //TODO: reverse one of the diff calculations because the BNO has been flipped.
@@ -176,7 +184,7 @@ void updateNavigation(String _location){
         return;
     }
     if(navSteps.size() < 1){
-        instructCoController(waitflag, '0');
+        instructCoController(waitflag, 0);
         refreshPathJson(_location, the_goal);
         //return;
     }
