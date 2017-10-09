@@ -71,7 +71,7 @@ const char sleepflag = 'z';
 const char rainbowflag = 'r';
 
 //rbg values to send over serial
-const String orange = ".210.210.20"; //more like orange
+const String orange = ".255.125.5"; //more like orange
 const String purple = ".25.2.255";
 const String red = ".255.5.50";
 const String cyan = ".2.50.255";
