@@ -336,24 +336,16 @@ bool cycleSession(){
 }
 
 void loop() {
-    while(digitalRead(CHGPIN) == HIGH) {
-        if(hasSession){
-            //TODO send session closure
-            cycleSession();
-            hasSession = false;
-        }
+
+    int val = digitalRead(CHGPIN);
+    if(val == HIGH && WiFi.ready()){
+        cycleSession();
         fallbacktimer.stop();
         instructCoController(sleepflag, 0);
-        isAsleep = true;
-        System.sleep(3);  
-        return;
+        System.sleep(CHG, FALLING, 600);
     }
-
-    if(isAsleep){
-        isAsleep = false;
-        Spark.connect();
-        instructCoController(waitflag, 0);
-        fallbacktimer.start();
+    if(!WiFi.ready()){
+        return;
     }
 
     recvWithStartEndMarkers();
@@ -426,9 +418,9 @@ void applySerialReport(String serialcommand){
           if(scanned_target){ //they scanned what we thought they might. clear their path and reset nav loop time.
             instructCoController(successflag, 0);
             navSteps.clear();
-            _navsteptime = 1500;
-            nextTime = millis() + _navsteptime; //kick the loop so success doesn't run too long
           }
+          _navsteptime = 1500;
+          nextTime = millis() + _navsteptime; //kick the loop so scanning loop doesn't run too long
       }
 }
 
