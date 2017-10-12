@@ -18,7 +18,7 @@ class Room{
 class Goal{
     public:
         String room = "0";
-        String color = "cyan";
+        String color = "blue";
 };
 
 std::vector<Room> navSteps;
@@ -74,7 +74,7 @@ const char rainbowflag = 'r';
 const String orange = ".255.125.5"; //more like orange
 const String purple = ".25.2.255";
 const String red = ".255.5.50";
-const String cyan = ".2.50.255";
+const String blue = ".2.50.255";
 const String green = ".50.250.75";
 
 //inbound
@@ -210,11 +210,11 @@ void updateNavigation(String _location){
                 //Reached the destination gallery, display tag color...
                 fallbacktimer.stop();
                 fallbacktimer.reset();
-                String _sendcolor = cyan;
+                String _sendcolor = blue;
                 if(navGoal.color == "orange") _sendcolor = orange;
                 if(navGoal.color == "purple") _sendcolor = purple;
                 if(navGoal.color == "red") _sendcolor = red;
-                if(navGoal.color == "cyan") _sendcolor = cyan;
+                if(navGoal.color == "blue") _sendcolor = blue;
                 if(navGoal.color == "green") _sendcolor = green;
                 instructCoController(rgbflag, _sendcolor);
                 _navsteptime = 30000; //slow down nav loop since we're at the destination.

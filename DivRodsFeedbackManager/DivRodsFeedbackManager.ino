@@ -120,7 +120,7 @@ void loop() {
 
   if(_mode == sleepflag){
     strip.setBrightness(0);
-    halfColorWipe(strip.Color(0, 0, 0));
+    halfColorWipe(strip.Color(0, 0, 0), true);
     strip.show();
     return;
   }
@@ -205,14 +205,16 @@ void loop() {
     case 'w':{
       constantPulse(8);
       brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
-      halfColorWipe(strip.Color(125, 125, 150));
+      halfColorWipe(strip.Color(125, 125, 150), true);
       break;
     }
     //Got the right tag. Fast flash as a reward.
     case 's':{
       constantPulse(12);
       brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
-      fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
+      halfColorWipe(Wheel(fadecounter, true), true);
+      halfColorWipe(Wheel(fadecounter, false), false);
+      //fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
       break;
     }
     //Polling for a tag. Color goes steady when we get a good scan.
@@ -220,7 +222,7 @@ void loop() {
       if(!_got_tag){
         rfidscanPulse(4);
         brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
-        halfColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
+        halfColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]), true);
       }else{
         brtns_mod = 75;
         fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
@@ -230,17 +232,17 @@ void loop() {
     case 'e':{ //error state
       constantPulse(4);
       brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
-      halfColorWipe(strip.Color(200, 25, 50));
+      halfColorWipe(strip.Color(200, 25, 50), true);
       break;
     }
     case 'r':{ //rainbow state
       if(!_got_tag){
         rfidscanPulse(4);
         brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
-        halfColorWipe(Wheel(fadecounter));
+        halfColorWipe(Wheel(fadecounter, true), true);
       }else{
         brtns_mod = 75;
-        fullColorWipe(Wheel(fadecounter));
+        fullColorWipe(Wheel(fadecounter, true));
       }
       break;
     }
@@ -305,8 +307,10 @@ void rfidscanPulse(byte rate){
     }
 }
 
-uint32_t Wheel(long WheelPos) {
-  WheelPos = fadeinterval - WheelPos; //unsure why this is necessary
+uint32_t Wheel(long WheelPos, bool invert) {
+  if(invert){
+     WheelPos = fadeinterval - WheelPos; //unsure why this is necessary 
+  }
   byte computed = map(WheelPos, 0, fadeinterval, 255, 0);
   if(computed < 85) {
     return strip.Color(255 - computed * 3, 0, computed * 3);
@@ -381,12 +385,14 @@ void fullColorWipe(uint32_t c){
   strip.show();
 }
 
-void halfColorWipe(uint32_t c){
+void halfColorWipe(uint32_t c, bool invert){
   for(uint16_t i=0; i<PIXELS; i++) {
-      strip.setPixelColor(i, strip.Color(0,0,0));  
+    if(invert)strip.setPixelColor(i, strip.Color(0,0,0)); 
+    else strip.setPixelColor(i, c);  
   }
   for(uint16_t j=0; j<PIXELS; j=j+2) {
-      strip.setPixelColor(j, c);  
+    if(invert)strip.setPixelColor(j, c); 
+    else strip.setPixelColor(j, strip.Color(0,0,0));
   }
   strip.show();
 }
