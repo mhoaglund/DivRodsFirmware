@@ -176,14 +176,12 @@ void wd_exit(){
 }
 
 //master method to update variables and request a new set of steps to destination
-//TODO: rework to use standard strings. Something's up with the String object, and its
-//not getting passed to our fucking functions.
 void updateNavigation(String _location){
     String the_goal = navGoal.room;
     if(_location.length() != 3){
         return;
     }
-    if(navSteps.size() < 1){
+    if(navSteps.size() == 0){
         instructCoController(waitflag, 0);
         refreshPathJson(_location, the_goal);
         //return;
@@ -268,9 +266,8 @@ void debounceLocation(String _location){
     Parses JSON response into Vector of Rooms.
 */
 void refreshPathJson(String _location, String _destination){
-    String _locs = "Path points: " + _location + ", " + _destination;
     String qs = "&start=" + _location + "&end=" + _destination;
-    StaticJsonBuffer<1500> jsonBuffer;
+    StaticJsonBuffer<1800> jsonBuffer;
     http_request_t this_request;
     http_response_t this_response;
     this_request.hostname = UTILITY_HOST;
@@ -290,7 +287,6 @@ void refreshPathJson(String _location, String _destination){
                 return;
             }
             navSteps.clear();
-            String _roomnames = "";
             int number_of_steps = newpath["steps"];
             navSteps.reserve(number_of_steps);
             JsonArray& _journeysteps = newpath["journey"].asArray();
@@ -298,7 +294,6 @@ void refreshPathJson(String _location, String _destination){
                 JsonObject& step = _journeysteps[i];
                 Room _room_for_step;
                 _room_for_step.name = step["room"].asString();
-                _roomnames = _roomnames + step["room"].asString() + ", ";
                 _room_for_step.pos[0] = step["coords"][0];
                 _room_for_step.pos[1] = step["coords"][1];
                 navSteps.push_back(_room_for_step);
