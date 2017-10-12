@@ -31,6 +31,8 @@
 #define RING_DATA_PIN 6
 #define PIXELS 16
 
+#define VERSION 012
+
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIXELS, RING_DATA_PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
@@ -48,12 +50,10 @@ const char headingflag = 'h';
 const char waitflag = 'w';
 const char successflag = 's';
 const char errorflag = 'e';
-const char printflag = 'p';
 const char rgbflag = 'c';
-const char retrievalflag = 'g';
 const char sleepflag = 'z';
 const char rainbowflag = 'r';
-const char sparkleflag = 'k';
+const char vflag = 'v';
 char _mode = 'h';
 char _modecache = 'h';
 
@@ -486,6 +486,10 @@ void applySerialCommand(String serialcommand){
       else if(receivedChars[0] == rainbowflag){
         _mode = rainbowflag;
       }
-      fadecounter = 0;
+      else if(receivedChars[0] == vflag){
+        Serial.print("<v");
+        Serial.print(VERSION, DEC);
+        Serial.print(">");
+      }
 }
 
