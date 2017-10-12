@@ -178,7 +178,7 @@ void loop() {
     //if a command came in while we were showing feedback, enact it.
     applySerialCommand(cmdcache);
   }
-  
+  brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
   switch (_mode) {
     case 'h':{
       if(_shouldFlash){
@@ -204,14 +204,13 @@ void loop() {
     //Waiting for a call. Slow white flash.
     case 'w':{
       constantPulse(8);
-      brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
+      
       halfColorWipe(strip.Color(125, 125, 150), true);
       break;
     }
     //Got the right tag. Fast flash as a reward.
     case 's':{
-      constantPulse(12);
-      brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
+      constantPulse(10);
       halfColorWipe(Wheel(fadecounter, true), true);
       halfColorWipe(Wheel(fadecounter, false), false);
       //fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
@@ -221,28 +220,25 @@ void loop() {
     case 'c':{
       if(!_got_tag){
         rfidscanPulse(4);
-        brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
         halfColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]), true);
       }else{
-        brtns_mod = 75;
-        fullColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]));
+        constantPulse(6);
+        sideWipe(strip.Color(125, 125, 150), fadedirection);
       }
       break;
     }
     case 'e':{ //error state
       constantPulse(4);
-      brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
       halfColorWipe(strip.Color(200, 25, 50), true);
       break;
     }
     case 'r':{ //rainbow state
       if(!_got_tag){
         rfidscanPulse(4);
-        brtns_mod = map(fadecounter, 0, fadeinterval, brightness_low, 75);
         halfColorWipe(Wheel(fadecounter, true), true);
       }else{
-        brtns_mod = 75;
-        fullColorWipe(Wheel(fadecounter, true));
+        constantPulse(6);
+        sideWipe(strip.Color(125, 125, 150), fadedirection);
       }
       break;
     }
@@ -393,6 +389,23 @@ void halfColorWipe(uint32_t c, bool invert){
   for(uint16_t j=0; j<PIXELS; j=j+2) {
     if(invert)strip.setPixelColor(j, c); 
     else strip.setPixelColor(j, strip.Color(0,0,0));
+  }
+  strip.show();
+}
+
+void sideWipe(uint32_t c, bool invert){
+  for(uint16_t j=0; j<PIXELS; j++) {
+    if(invert)strip.setPixelColor(j, c); 
+    else strip.setPixelColor(j, strip.Color(0,0,0));
+  }
+  uint16_t i = 0;
+  uint16_t limit = PIXELS/2;
+  if(invert){
+    i = PIXELS/2;
+    limit = PIXELS;
+  }
+  for(i; i<limit; i++) {
+    strip.setPixelColor(i, c);  
   }
   strip.show();
 }
