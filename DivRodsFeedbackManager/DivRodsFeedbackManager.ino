@@ -223,7 +223,7 @@ void loop() {
         halfColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]), true);
       }else{
         constantPulse(6);
-        sideWipe(strip.Color(125, 125, 150), fadedirection);
+        sideWipe(strip.Color(125, 125, 150), !fadedirection);
       }
       break;
     }
@@ -238,7 +238,7 @@ void loop() {
         halfColorWipe(Wheel(fadecounter, true), true);
       }else{
         constantPulse(6);
-        sideWipe(strip.Color(125, 125, 150), fadedirection);
+        sideWipe(strip.Color(125, 125, 150), !fadedirection);
       }
       break;
     }
@@ -395,8 +395,7 @@ void halfColorWipe(uint32_t c, bool invert){
 
 void sideWipe(uint32_t c, bool invert){
   for(uint16_t j=0; j<PIXELS; j++) {
-    if(invert)strip.setPixelColor(j, c); 
-    else strip.setPixelColor(j, strip.Color(0,0,0));
+    strip.setPixelColor(j, strip.Color(0,0,0));
   }
   uint16_t i = 0;
   uint16_t limit = PIXELS/2;
