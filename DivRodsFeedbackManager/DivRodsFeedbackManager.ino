@@ -223,7 +223,7 @@ void loop() {
         halfColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]), true);
       }else{
         constantPulse(6);
-        sideWipe(strip.Color(125, 125, 150), !fadedirection);
+        sideWipe(strip.Color(100, 125, 175), !fadedirection);
       }
       break;
     }
@@ -238,7 +238,7 @@ void loop() {
         halfColorWipe(Wheel(fadecounter, true), true);
       }else{
         constantPulse(6);
-        sideWipe(strip.Color(125, 125, 150), !fadedirection);
+        sideWipe(strip.Color(100, 125, 175), !fadedirection);
       }
       break;
     }

@@ -27,7 +27,7 @@ std::vector<String> recentLocations;
 Goal navGoal;
 int _steps = 0;
 int _navsteptime = 1500;
-int _fallbackTime = 250000;
+int _fallbackTime = 260000;
 int _recoveryTime = 20000;
 int _navbounces = 0;
 Timer fallbacktimer(_fallbackTime, toggleFreeMode);
@@ -403,7 +403,6 @@ void recvWithStartEndMarkers() {
     }
 }
 
-//TODO integrate override
 void applySerialReport(String serialcommand){
       if(serialcommand[0] == rfidflag){
           serialcommand.remove(0,1);
@@ -416,6 +415,7 @@ void applySerialReport(String serialcommand){
           }
           _navsteptime = 1500;
           nextTime = millis() + _navsteptime; //kick the loop so scanning loop doesn't run too long
+          if(isInFreeMode) isInFreeMode = false;
       }
 }
 
@@ -428,7 +428,6 @@ bool sendScannedTag(String _path, String _query){
     this_request.port = 80;
     this_request.path = _path + "?deviceid=" + myID + "&" + _query + oride;
     http.get(this_request, this_response, headers);
-    isInFreeMode = false;
     fallbacktimer.start();
     if(this_response.body.length() > 0){
         char json[this_response.body.length()+1];
