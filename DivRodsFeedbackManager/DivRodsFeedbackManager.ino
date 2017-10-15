@@ -26,8 +26,8 @@
 
 #define BACKLIGHT 8
 #define HAPTIC 9
-#define LEFTBTN 11
-#define RIGHTBTN 12
+#define LEFTBTN 12
+#define RIGHTBTN 11
 #define RING_DATA_PIN 6
 #define PIXELS 16
 
@@ -89,7 +89,9 @@ void setup() {
   pinMode(RIGHTBTN, INPUT_PULLUP);
   
   Serial.begin(9600);
-
+  digitalWrite(BACKLIGHT, HIGH);
+  delay(100);
+  digitalWrite(BACKLIGHT, LOW);
   if(!bno.begin())
   {
     Serial.print("<xfaultbno>");
@@ -183,8 +185,8 @@ void loop() {
     case 'h':{
       if(_shouldFlash){
         if(_flashcount < 4){
-          if(fadedirection) fadecounter += 5;
-          if(!fadedirection) fadecounter -= 5;
+          if(fadedirection) fadecounter += 8;
+          if(!fadedirection) fadecounter -= 8;
           if(fadecounter > fadeinterval) fadedirection = false;
           if(fadecounter < 1){
             fadedirection = true;
@@ -219,10 +221,10 @@ void loop() {
     //Polling for a tag. Color goes steady when we get a good scan.
     case 'c':{
       if(!_got_tag){
-        rfidscanPulse(4);
+        rfidscanPulse(6);
         halfColorWipe(strip.Color(cueColor[0], cueColor[1], cueColor[2]), true);
       }else{
-        constantPulse(6);
+        constantPulse(8);
         sideWipe(strip.Color(100, 125, 175), !fadedirection);
       }
       break;
@@ -237,7 +239,7 @@ void loop() {
         rfidscanPulse(4);
         halfColorWipe(Wheel(fadecounter, true), true);
       }else{
-        constantPulse(6);
+        constantPulse(8);
         sideWipe(strip.Color(100, 125, 175), !fadedirection);
       }
       break;
