@@ -27,7 +27,7 @@ std::vector<String> recentLocations;
 Goal navGoal;
 int _steps = 0;
 int _navsteptime = 1500;
-int _fallbackTime = 140000;
+int _fallbackTime = 160000;
 int _recoveryTime = 20000;
 int _navbounces = 0;
 Timer fallbacktimer(_fallbackTime, toggleFreeMode);
@@ -182,9 +182,7 @@ void updateNavigation(String _location){
         return;
     }
     if(navSteps.size() == 0){
-        instructCoController(waitflag, 0); //TODO: get rid of this. Keep the recovery timer thing but ditch the waitflag.
         refreshPathJson(_location, the_goal);
-        //return;
     }
     int _stepindex = 99;
     bool _onTrack = false;
