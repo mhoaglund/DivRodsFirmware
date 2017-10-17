@@ -471,12 +471,18 @@ void applySerialCommand(String serialcommand){
             }
           rgbvals = strtok(0, ".");
         }
+        digitalWrite(HAPTIC, LOW);
+        delay(200);
+        digitalWrite(HAPTIC, HIGH);
       }
       else if(receivedChars[0] == waitflag){
         _mode = waitflag;
       }
       else if(receivedChars[0] == successflag){
         _mode = successflag;
+        digitalWrite(HAPTIC, LOW);
+        delay(200);
+        digitalWrite(HAPTIC, HIGH);
       }
       else if(receivedChars[0] == errorflag){
         _mode = errorflag;
@@ -486,6 +492,9 @@ void applySerialCommand(String serialcommand){
       }
       else if(receivedChars[0] == rainbowflag){
         _mode = rainbowflag;
+        digitalWrite(HAPTIC, LOW);
+        delay(200);
+        digitalWrite(HAPTIC, HIGH);
       }
       else if(receivedChars[0] == vflag){
         Serial.print("<v");

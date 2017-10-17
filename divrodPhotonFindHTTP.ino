@@ -182,6 +182,7 @@ void updateNavigation(String _location){
         return;
     }
     if(navSteps.size() == 0){
+        instructCoController(headingflag, 90);
         refreshPathJson(_location, the_goal);
     }
     int _stepindex = 99;
@@ -213,7 +214,7 @@ void updateNavigation(String _location){
                 if(navGoal.color == "blue") _sendcolor = blue;
                 if(navGoal.color == "green") _sendcolor = green;
                 instructCoController(rgbflag, _sendcolor);
-                _navsteptime = 30000; //slow down nav loop since we're at the destination.
+                _navsteptime = 40000; //slow down nav loop since we're at the destination.
             }
             else{
                 //Moving along the path, get the next step.
@@ -334,6 +335,7 @@ void loop() {
     if(val == HIGH && WiFi.ready()){
         //cycleSession();
         fallbacktimer.stop();
+        _fallbackTime = 160000;
         instructCoController(sleepflag, 0);
         System.sleep(CHGPIN, FALLING, 600);
     }
@@ -426,7 +428,7 @@ bool sendScannedTag(String _path, String _query){
     this_request.port = 80;
     this_request.path = _path + "?deviceid=" + myID + "&" + _query + oride;
     http.get(this_request, this_response, headers);
-    fallbacktimer.start();
+    fallbacktimer.reset();
     if(this_response.body.length() > 0){
         char json[this_response.body.length()+1];
         strcpy(json, this_response.body.c_str());
@@ -440,6 +442,9 @@ bool sendScannedTag(String _path, String _query){
             new_goal.room = newgoal["room"];
             new_goal.color = newgoal["color"];
             navGoal = new_goal;
+            if(_fallbackTime < 360000){
+                _fallbackTime += 15000;
+            }
             return true;
         }
     }
